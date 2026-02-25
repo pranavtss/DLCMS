@@ -10,10 +10,43 @@ app.use(cors())
 app.use(express.json())
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dlcms"
+const ADMIN_EMAIL = "admin@dlcms"
+const ADMIN_PASSWORD = "admin"
+
+const ensureAdminAccount = async () => {
+  try {
+    const adminHash = await bcrypt.hash(ADMIN_PASSWORD, 10)
+    const existing = await User.findOne({ email: ADMIN_EMAIL })
+
+    if (!existing) {
+      await User.create({
+        name: "Admin",
+        email: ADMIN_EMAIL,
+        password: adminHash,
+        role: "Admin",
+      })
+      console.log("Admin account created")
+      return
+    }
+
+    const passwordMatches = await bcrypt.compare(ADMIN_PASSWORD, existing.password)
+    if (existing.role !== "Admin" || !passwordMatches) {
+      existing.role = "Admin"
+      existing.password = adminHash
+      await existing.save()
+      console.log("Admin account updated")
+    }
+  } catch (error) {
+    console.error("Admin account check failed:", error.message)
+  }
+}
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
+  .then(async () => {
+    console.log("MongoDB connected")
+    await ensureAdminAccount()
+  })
   .catch((error) => console.error("MongoDB connection error:", error.message))
 
 app.get("/api/health", (req, res) => {
@@ -30,6 +63,12 @@ app.post("/api/auth/login", (req, res) => {
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials." })
       }
+      if (email.toLowerCase() === "admin@dlcms" && user.role !== "Admin") {
+        return res.status(403).json({ message: "Unauthorized admin login." })
+      }
+      if (user.role === "Admin" && user.email !== "admin@dlcms") {
+        return res.status(403).json({ message: "Unauthorized admin login." })
+      }
       const match = await bcrypt.compare(password, user.password)
       if (!match) {
         return res.status(401).json({ message: "Invalid credentials." })
@@ -44,6 +83,14 @@ app.post("/api/auth/register", async (req, res) => {
     const { name, email, password, role, adminSecret } = req.body
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password required." })
+    }
+
+    if (name.trim().toLowerCase() === "admin") {
+      return res.status(403).json({ message: "Username 'admin' is reserved." })
+    }
+
+    if (email.trim().toLowerCase() === "admin@dlcms") {
+      return res.status(403).json({ message: "Admin account is reserved." })
     }
     
     // Block Admin creation unless secret is provided

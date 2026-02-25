@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 
 const LoginForm = () => {
   const navigate = useNavigate()
-  const [role, setRole] = useState("Learner")
   const [showPassword, setShowPassword] = useState(false)
   const [formState, setFormState] = useState({
     email: "",
@@ -30,7 +29,7 @@ const LoginForm = () => {
       const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formState.email, password: formState.password, role }),
+        body: JSON.stringify({ email: formState.email, password: formState.password }),
       })
       const data = await response.json()
       if (!response.ok) {
@@ -49,21 +48,6 @@ const LoginForm = () => {
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-slate-900">Welcome back</h2>
         <p className="text-sm text-slate-500">Login to manage your learning journey</p>
-      </div>
-
-      <div className="mt-5 flex rounded-full bg-slate-100 p-1 text-xs font-semibold sm:text-sm">
-        {["Learner", "Admin"].map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setRole(item)}
-            className={`flex-1 rounded-full px-4 py-2 transition ${
-              role === item ? "bg-white text-brand-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
       </div>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
@@ -129,17 +113,12 @@ const LoginForm = () => {
         )}
       </form>
 
-      {role === "Learner" && (
-        <p className="mt-6 text-center text-xs text-slate-500">
-          Don&apos;t have an account?{" "}
-          <span
-            className="font-semibold text-brand-600 cursor-pointer"
-            onClick={() => navigate("/register")}
-          >
-            Create an account
-          </span>
-        </p>
-      )}
+      <p className="mt-6 text-center text-xs text-slate-500">
+        Don&apos;t have an account?{" "}
+        <span className="font-semibold text-brand-600 cursor-pointer" onClick={() => navigate("/register")}>
+          Create an account
+        </span>
+      </p>
     </div>
   )
 }
