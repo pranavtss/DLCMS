@@ -36,6 +36,10 @@ const LoginForm = () => {
         setMessage(data.message || "Login failed.")
         return
       }
+      // Store user data in localStorage
+      localStorage.setItem('userName', data.name || 'User')
+      localStorage.setItem('userRole', data.role)
+      
       const target = data.role === "Admin" ? "/admin" : "/learner"
       navigate(target)
     } catch (error) {
