@@ -13,7 +13,7 @@ export default function App() {
 			<Route path="/register" element={<Register />} />
 			<Route path="/help" element={<HelpCenter />} />
 			<Route path="/admin" element={<AdminDashboard />} />
-			<Route path="/learner" element={<LearnerDashboard />} />
+			<Route path="/learner/*" element={<LearnerDashboard />} />
 		</Routes>
 	)
 }
