@@ -1,10 +1,40 @@
-const LearnerDashboard = () => (
-  <div className="min-h-screen bg-slate-50 px-4 py-10">
-    <div className="mx-auto max-w-5xl">
-      <h1 className="text-2xl font-semibold text-slate-900">Learner Dashboard</h1>
-      <p className="mt-2 text-sm text-slate-500">Routing placeholder for learner UI.</p>
-    </div>
-  </div>
-)
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import Sidebar from '../components/learner/Sidebar';
+import MyCourses from '../components/learner/MyCourses';
+import BrowseCourses from '../components/learner/BrowseCourses';
+import Progress from '../components/learner/Progress';
 
-export default LearnerDashboard
+const LearnerDashboard = () => {
+  const [userName, setUserName] = useState('Learner');
+
+  // TODO: Fetch user data from backend/localStorage
+  useEffect(() => {
+    // Placeholder for fetching user data
+    const storedName = localStorage.getItem('userName');
+    if (storedName) {
+      setUserName(storedName);
+    }
+  }, []);
+
+  return (
+    <div className="flex h-screen bg-slate-50">
+      {/* Sidebar */}
+      <Sidebar userName={userName} />
+      
+      {/* Main Content */}
+      <div className="flex-1 ml-64 overflow-auto">
+        <div className="max-w-7xl mx-auto p-8">
+          <Routes>
+            <Route index element={<Navigate to="my-courses" replace />} />
+            <Route path="my-courses" element={<MyCourses />} />
+            <Route path="browse-courses" element={<BrowseCourses />} />
+            <Route path="progress" element={<Progress />} />
+          </Routes>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LearnerDashboard;
