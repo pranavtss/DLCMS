@@ -11,7 +11,8 @@ const SidePanel = () => (
     </div>
 
     <div className="mt-8 overflow-hidden rounded-2xl bg-teal-700 p-6 shadow-lg">
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center"
+      >
         <img
           src="/learning-illustration.png"
           alt="Learning together"
@@ -29,7 +30,6 @@ const SidePanel = () => (
         </div>
       </div>
     </div>
-
     <div className="mt-6 flex items-center gap-3 text-xs text-slate-600">
       <div className="flex -space-x-2">
         {["A", "B", "C"].map((letter) => (
