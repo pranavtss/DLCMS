@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { GraduationCap, BookOpen, BarChart3, BookMarked, LogOut, X } from 'lucide-react';
+import { GraduationCap, BookOpen, BarChart3, BookMarked, LogOut, X, Star } from 'lucide-react';
 
 const Sidebar = ({ userName = "User", isOpen = true, onClose }) => {
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ const Sidebar = ({ userName = "User", isOpen = true, onClose }) => {
     { icon: GraduationCap, label: 'My Courses', path: '/learner/my-courses' },
     { icon: BookOpen, label: 'Browse Courses', path: '/learner/browse-courses' },
     { icon: BarChart3, label: 'Progress', path: '/learner/progress' },
+    { icon: Star, label: 'Reviews', path: '/learner/reviews' },
   ];
 
   // Get user initials

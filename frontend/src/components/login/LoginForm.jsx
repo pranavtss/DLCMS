@@ -26,24 +26,37 @@ const LoginForm = () => {
       return
     }
     try {
+      console.log('📧 Sending login request to: http://localhost:5000/api/auth/login')
+      console.log('📝 Credentials:', { email: formState.email.toLowerCase(), password: '***' })
+      
       const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formState.email, password: formState.password }),
+        body: JSON.stringify({ email: formState.email.toLowerCase(), password: formState.password }),
       })
+      
+      console.log('✓ Response status:', response.status)
       const data = await response.json()
+      console.log('✓ Response data:', data)
+      
       if (!response.ok) {
+        console.error('❌ Login failed:', data.message)
         setMessage(data.message || "Login failed.")
         return
       }
+      
+      console.log('✅ Login successful, storing data...')
       // Store user data in localStorage
+      localStorage.setItem('userId', data.userId || data.id || '')
       localStorage.setItem('userName', data.name || 'User')
       localStorage.setItem('userRole', data.role)
       
+      console.log('✅ Redirecting to:', data.role === "Admin" ? "/admin" : "/learner")
       const target = data.role === "Admin" ? "/admin" : "/learner"
       navigate(target)
     } catch (error) {
-      setMessage("Login failed. Please try again.")
+      console.error('❌ Fetch error:', error)
+      setMessage("Login failed. Please try again. Check console for details.")
     }
   }
 

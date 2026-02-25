@@ -5,6 +5,7 @@ import Sidebar from '../components/learner/Sidebar';
 import MyCourses from '../components/learner/MyCourses';
 import BrowseCourses from '../components/learner/BrowseCourses';
 import Progress from '../components/learner/Progress';
+import Reviews from '../components/learner/Reviews';
 
 const LearnerDashboard = () => {
   const [userName, setUserName] = useState('Learner');
@@ -52,6 +53,7 @@ const LearnerDashboard = () => {
             <Route path="my-courses" element={<MyCourses />} />
             <Route path="browse-courses" element={<BrowseCourses />} />
             <Route path="progress" element={<Progress />} />
+            <Route path="reviews" element={<Reviews />} />
           </Routes>
         </div>
       </div>

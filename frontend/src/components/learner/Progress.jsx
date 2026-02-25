@@ -85,26 +85,39 @@ const Progress = () => {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-xl font-semibold text-slate-900 mb-6">Course Progress</h2>
-          <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-slate-900 mb-6">Course Progress & Time Spent</h2>
+          <div className="space-y-6">
             {enrolledCourses.map((course) => (
-              <div key={course.id} className="border-b border-slate-200 last:border-0 pb-4 last:pb-0">
-                <div className="flex items-start justify-between mb-2">
+              <div key={course.id} className="border-b border-slate-200 last:border-0 pb-6 last:pb-0">
+                <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-slate-900">{course.title}</h3>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {course.lessonsCompleted || 0} of {course.totalLessons || 0} lessons completed
-                    </p>
+                    <h3 className="font-semibold text-slate-900 text-lg">{course.title}</h3>
+                    <div className="flex items-center gap-4 mt-2">
+                      <p className="text-sm text-slate-500 flex items-center gap-1">
+                        <BookOpen className="w-4 h-4" />
+                        {course.lessonsCompleted || 0} of {course.totalLessons || 0} lessons
+                      </p>
+                      <p className="text-sm text-slate-500 flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span className="font-semibold text-blue-600">{course.hoursSpent || 0}h</span> spent
+                      </p>
+                    </div>
                   </div>
-                  <span className="text-lg font-bold text-brand-600 ml-4">
+                  <span className="text-2xl font-bold text-brand-600 ml-4">
                     {course.progress || 0}%
                   </span>
                 </div>
-                <div className="w-full bg-slate-200 rounded-full h-2">
+                <div className="w-full bg-slate-200 rounded-full h-3">
                   <div 
-                    className="bg-brand-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-brand-600 h-3 rounded-full transition-all duration-300"
                     style={{ width: `${course.progress || 0}%` }}
                   ></div>
+                </div>
+                {/* Time breakdown */}
+                <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+                  <span>Last activity: {course.lastActivity || 'N/A'}</span>
+                  <span>•</span>
+                  <span>Avg. daily: {course.avgDailyTime || '0'}min</span>
                 </div>
               </div>
             ))}

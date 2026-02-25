@@ -23,20 +23,40 @@ const Register = () => {
       setMessage("Please fill in all fields.")
       return
     }
+    
     try {
+      console.log('📝 Sending registration request...')
+      console.log('  Name:', formState.name)
+      console.log('  Email:', formState.email)
+      console.log('  Role:', role)
+      
       const response = await fetch("http://localhost:5000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...formState, role }),
       })
+      
+      console.log('✓ Response status:', response.status)
       const data = await response.json()
+      console.log('✓ Response data:', data)
+      
       if (!response.ok) {
+        console.error('❌ Registration failed:', data.message)
         setMessage(data.message || "Registration failed.")
         return
       }
+      
+      console.log('✅ Registration successful, storing data...')
+      // Store user data in localStorage
+      localStorage.setItem('userId', data.userId || data.id || '')
+      localStorage.setItem('userName', data.name || 'User')
+      localStorage.setItem('userRole', data.role)
+      
+      console.log('✅ Redirecting to:', data.role === "Admin" ? "/admin" : "/learner")
       const target = data.role === "Admin" ? "/admin" : "/learner"
       navigate(target)
     } catch (error) {
+      console.error('❌ Fetch error:', error)
       setMessage("Registration failed. Please try again.")
     }
   }
