@@ -6,6 +6,7 @@ import MyCourses from '../components/learner/MyCourses';
 import BrowseCourses from '../components/learner/BrowseCourses';
 import Progress from '../components/learner/Progress';
 import Reviews from '../components/learner/Reviews';
+import LearnerCourseDetailPage from './LearnerCourseDetailPage';
 
 const LearnerDashboard = () => {
   const [userName, setUserName] = useState('Learner');
@@ -52,6 +53,7 @@ const LearnerDashboard = () => {
             <Route index element={<Navigate to="my-courses" replace />} />
             <Route path="my-courses" element={<MyCourses />} />
             <Route path="browse-courses" element={<BrowseCourses />} />
+            <Route path="courses/:courseId" element={<LearnerCourseDetailPage />} />
             <Route path="progress" element={<Progress />} />
             <Route path="reviews" element={<Reviews />} />
           </Routes>

@@ -2,12 +2,41 @@ const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
 const bcrypt = require("bcrypt")
+const path = require("path")
+const fs = require("fs")
+const multer = require("multer")
 const User = require("./models/User")
+const Course = require("./models/Course")
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+const uploadsDir = path.join(__dirname, "uploads")
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true })
+  console.log("✓ Uploads directory created at:", uploadsDir)
+} else {
+  console.log("✓ Uploads directory exists at:", uploadsDir)
+}
+
+app.use("/uploads", express.static(uploadsDir))
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadsDir)
+    },
+    filename: (req, file, cb) => {
+      const timestamp = Date.now()
+      const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")
+      const filename = `${timestamp}-${safeName}`
+      console.log("✓ Saving file:", filename)
+      cb(null, filename)
+    },
+  }),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB for educational materials
+})
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dlcms"
 const ADMIN_EMAIL = "admin@dlcms"
@@ -155,6 +184,378 @@ app.post("/api/auth/register", async (req, res) => {
     }
     return res.status(500).json({ message: "Registration failed.", error: error.message })
   }
+})
+
+app.post("/api/uploads", (req, res, next) => {
+  console.log("📁 Upload request received")
+  upload.single("file")(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      console.error("❌ Multer error:", err.code, err.message)
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: 'File is too large. Maximum size is 100MB' })
+      }
+      return res.status(400).json({ message: err.message })
+    } else if (err) {
+      console.error("❌ Upload middleware error:", err.message)
+      return res.status(500).json({ message: "Upload failed", error: err.message })
+    }
+
+    if (!req.file) {
+      console.warn("⚠️  No file provided in upload request")
+      return res.status(400).json({ message: "No file uploaded" })
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`
+    console.log("✓ File uploaded successfully:", fileUrl)
+    res.status(201).json({
+      message: "File uploaded",
+      url: fileUrl,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+    })
+  })
+})
+
+// ===== COURSES ENDPOINTS =====
+app.get("/api/courses", async (req, res) => {
+  try {
+    const courses = await Course.find({ isPublished: true }).sort({ createdAt: -1 })
+    res.json(courses)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch courses", error: error.message })
+  }
+})
+
+app.get("/api/admin/courses", async (req, res) => {
+  try {
+    const courses = await Course.find().sort({ createdAt: -1 })
+    res.json(courses)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch courses", error: error.message })
+  }
+})
+
+app.get("/api/admin/courses/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    const course = await Course.findById(id)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+    
+    res.json(course)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch course", error: error.message })
+  }
+})
+
+app.post("/api/courses", async (req, res) => {
+  try {
+    const { title, description, instructor, category, level, duration, lessons, price, originalPrice } = req.body
+    const userId = req.body.userId || req.headers['x-user-id']
+    
+    if (!title || !description || !instructor || !category) {
+      return res.status(400).json({ message: "Please provide title, description, instructor, and category" })
+    }
+
+    const normalizedLessons = Array.isArray(lessons) ? lessons : []
+
+    const course = await Course.create({
+      title,
+      description,
+      instructor,
+      category,
+      level: level || "Beginner",
+      duration: duration || "N/A",
+      lessons: normalizedLessons,
+      price: price || 0,
+      originalPrice,
+      isPublished: true,
+      createdBy: userId,
+    })
+
+    console.log(`✅ Course created: ${course.title}`)
+    res.status(201).json({ message: "Course created successfully", course })
+  } catch (error) {
+    console.error('❌ Course creation error:', error.message)
+    res.status(500).json({ message: "Failed to create course", error: error.message })
+  }
+})
+
+app.patch("/api/courses/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    const updates = req.body
+    
+    const course = await Course.findByIdAndUpdate(id, updates, { new: true })
+    
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+    
+    console.log(`✅ Course updated: ${course.title}`)
+    res.json({ message: "Course updated successfully", course })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update course", error: error.message })
+  }
+})
+
+app.delete("/api/courses/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    const course = await Course.findByIdAndDelete(id)
+    
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+    
+    console.log(`✅ Course deleted: ${course.title}`)
+    res.json({ message: "Course deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete course", error: error.message })
+  }
+})
+
+// Lesson Management Endpoints
+app.post("/api/courses/:courseId/lessons", async (req, res) => {
+  try {
+    const { courseId } = req.params
+    const { title, videoUrl, videoUrls, description, order } = req.body
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    // Ensure lessons array exists
+    if (!course.lessons) {
+      course.lessons = []
+    }
+
+    // Add new lesson
+    const normalizedVideoUrls = Array.isArray(videoUrls)
+      ? videoUrls
+      : videoUrl
+        ? [videoUrl]
+        : []
+
+    const newLesson = {
+      title,
+      videoUrl: normalizedVideoUrls[0] || videoUrl,
+      videoUrls: normalizedVideoUrls,
+      description,
+      order: order || course.lessons.length,
+      materials: []
+    }
+
+    course.lessons.push(newLesson)
+    await course.save()
+
+    console.log(`✅ Lesson added to course ${course.title}: ${title}`)
+    res.json({ message: "Lesson added successfully", lesson: course.lessons[course.lessons.length - 1] })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to add lesson", error: error.message })
+  }
+})
+
+app.patch("/api/courses/:courseId/lessons/:lessonId", async (req, res) => {
+  try {
+    const { courseId, lessonId } = req.params
+    const { title, videoUrl, videoUrls, description, order } = req.body
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    const lesson = course.lessons.id(lessonId)
+    if (!lesson) {
+      return res.status(404).json({ message: "Lesson not found" })
+    }
+
+    // Update lesson fields
+    const normalizedVideoUrls = Array.isArray(videoUrls)
+      ? videoUrls
+      : videoUrl
+        ? [videoUrl]
+        : null
+
+    if (title) lesson.title = title
+    if (normalizedVideoUrls) {
+      lesson.videoUrls = normalizedVideoUrls
+      lesson.videoUrl = normalizedVideoUrls[0] || lesson.videoUrl
+    } else if (videoUrl) {
+      lesson.videoUrl = videoUrl
+    }
+    if (description) lesson.description = description
+    if (order !== undefined) lesson.order = order
+
+    await course.save()
+
+    console.log(`✅ Lesson updated: ${lesson.title}`)
+    res.json({ message: "Lesson updated successfully", lesson })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update lesson", error: error.message })
+  }
+})
+
+app.delete("/api/courses/:courseId/lessons/:lessonId", async (req, res) => {
+  try {
+    const { courseId, lessonId } = req.params
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    const lesson = course.lessons.id(lessonId)
+    if (!lesson) {
+      return res.status(404).json({ message: "Lesson not found" })
+    }
+
+    lesson.deleteOne()
+    await course.save()
+
+    console.log(`✅ Lesson deleted from course: ${course.title}`)
+    res.json({ message: "Lesson deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete lesson", error: error.message })
+  }
+})
+
+// Material Management Endpoints
+app.post("/api/courses/:courseId/lessons/:lessonId/materials", async (req, res) => {
+  try {
+    const { courseId, lessonId } = req.params
+    const { name, url, type } = req.body
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    const lesson = course.lessons.id(lessonId)
+    if (!lesson) {
+      return res.status(404).json({ message: "Lesson not found" })
+    }
+
+    // Ensure materials array exists
+    if (!lesson.materials) {
+      lesson.materials = []
+    }
+
+    const newMaterial = {
+      name,
+      url,
+      type: type || "other"
+    }
+
+    lesson.materials.push(newMaterial)
+    await course.save()
+
+    const addedMaterial = lesson.materials[lesson.materials.length - 1]
+    console.log(`✅ Material added to lesson: ${lesson.title} - ${name}`)
+    console.log(`  - Material ID: ${addedMaterial._id}`)
+    res.json({ message: "Material added successfully", material: addedMaterial })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to add material", error: error.message })
+  }
+})
+
+app.patch("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", async (req, res) => {
+  try {
+    const { courseId, lessonId, materialId } = req.params
+    const { name, url, type } = req.body
+
+    console.log(`🔍 PATCH Material Update:`)
+    console.log(`  - courseId: ${courseId}`)
+    console.log(`  - lessonId: ${lessonId}`)
+    console.log(`  - materialId: ${materialId}`)
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    const lesson = course.lessons.id(lessonId)
+    if (!lesson) {
+      return res.status(404).json({ message: "Lesson not found" })
+    }
+
+    console.log(`  - lesson found: ${lesson.title}`)
+    console.log(`  - lesson.materials length: ${lesson.materials.length}`)
+    console.log(`  - lesson.materials IDs: ${lesson.materials.map(m => m._id).join(', ')}`)
+
+    let material = lesson.materials.id(materialId)
+    
+    // Fallback: if .id() doesn't work, search manually
+    if (!material) {
+      console.log(`  - .id() method didn't find material, trying manual search...`)
+      material = lesson.materials.find(m => m._id.toString() === materialId.toString())
+    }
+
+    if (!material) {
+      console.log(`  - ❌ Material not found with id: ${materialId}`)
+      return res.status(404).json({ message: "Material not found" })
+    }
+    console.log(`  - ✅ Material found`)
+
+    if (name) material.name = name
+    if (url) material.url = url
+    if (type) material.type = type
+
+    await course.save()
+
+    console.log(`✅ Material updated in lesson: ${lesson.title}`)
+    res.json({ message: "Material updated successfully", material })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update material", error: error.message })
+  }
+})
+
+app.delete("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", async (req, res) => {
+  try {
+    const { courseId, lessonId, materialId } = req.params
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    const lesson = course.lessons.id(lessonId)
+    if (!lesson) {
+      return res.status(404).json({ message: "Lesson not found" })
+    }
+
+    let material = lesson.materials.id(materialId)
+    
+    // Fallback: if .id() doesn't work, search manually
+    if (!material) {
+      material = lesson.materials.find(m => m._id.toString() === materialId.toString())
+    }
+
+    if (!material) {
+      return res.status(404).json({ message: "Material not found" })
+    }
+
+    material.deleteOne()
+    await course.save()
+
+    console.log(`✅ Material deleted from lesson: ${lesson.title}`)
+    res.json({ message: "Material deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete material", error: error.message })
+  }
+})
+
+app.use((error, req, res, next) => {
+  console.error("❌ Unhandled error:", error)
+  res.status(error.status || 500).json({
+    message: error.message || "Internal server error",
+    error: error.message,
+  })
 })
 
 const PORT = process.env.PORT || 5000

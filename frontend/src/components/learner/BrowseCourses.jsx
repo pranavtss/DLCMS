@@ -1,19 +1,101 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, Search, Filter, Clock, Users, Star } from 'lucide-react';
 
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `http://localhost:5000${path}`;
+};
+
 const BrowseCourses = () => {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [filteredCourses, setFilteredCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
 
-  // TODO: Fetch available courses from backend
   useEffect(() => {
-    // Placeholder for fetching courses
-    // Mock data for demonstration (remove when backend is ready)
-    setCourses([]);
+    fetchCourses();
+    loadEnrolledCourses();
   }, []);
+
+  const loadEnrolledCourses = () => {
+    const enrolled = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
+    setEnrolledCourses(enrolled);
+  };
+
+  const isEnrolled = (courseId) => {
+    return enrolledCourses.includes(courseId);
+  };
+
+  const handleEnroll = async (course) => {
+    try {
+      const enrolled = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
+      if (!enrolled.includes(course._id)) {
+        enrolled.push(course._id);
+        localStorage.setItem('enrolledCourses', JSON.stringify(enrolled));
+        setEnrolledCourses(enrolled);
+      }
+      navigate('/learner/my-courses');
+    } catch (err) {
+      console.error('Error enrolling:', err);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/admin/courses');
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+      const data = await response.json();
+      setCourses(data);
+      setFilteredCourses(data);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let result = [...courses];
+
+    if (searchQuery) {
+      result = result.filter(course =>
+        course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.instructor?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (selectedLevel !== 'all' && selectedLevel !== 'all-levels') {
+      result = result.filter(course =>
+        course.level?.toLowerCase() === selectedLevel.toLowerCase()
+      );
+    }
+
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        case 'title':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'rating':
+          return (b.rating || 0) - (a.rating || 0);
+        case 'popular':
+        default:
+          return (b.students || 0) - (a.students || 0);
+      }
+    });
+
+    setFilteredCourses(result);
+  }, [courses, searchQuery, selectedLevel, sortBy]);
 
   const levels = ['All Levels', 'Beginner', 'Intermediate', 'Advanced'];
 
@@ -26,7 +108,7 @@ const BrowseCourses = () => {
           <p className="text-slate-600 mt-1">Discover and enroll in new courses</p>
         </div>
         <div className="text-sm text-slate-500">
-          {courses.length} {courses.length === 1 ? 'course' : 'courses'} available
+          {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'} available
         </div>
       </div>
 
@@ -76,14 +158,18 @@ const BrowseCourses = () => {
       </div>
 
       {/* Empty State */}
-      {courses.length === 0 && !loading && (
+      {filteredCourses.length === 0 && !loading && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
           <div className="w-24 h-24 bg-gradient-to-br from-brand-100 to-brand-200 rounded-full flex items-center justify-center mx-auto mb-6">
             <BookOpen className="w-12 h-12 text-brand-600" />
           </div>
-          <h3 className="text-xl font-semibold text-slate-900 mb-2">No courses available yet</h3>
+          <h3 className="text-xl font-semibold text-slate-900 mb-2">
+            {courses.length === 0 ? 'No courses available yet' : 'No courses match your filters'}
+          </h3>
           <p className="text-slate-500 max-w-md mx-auto">
-            We're working on adding exciting new courses. Check back soon to start your learning journey!
+            {courses.length === 0
+              ? "We're working on adding exciting new courses. Check back soon to start your learning journey!"
+              : 'Try adjusting your search or filters to find more courses.'}
           </p>
         </div>
       )}
@@ -106,18 +192,19 @@ const BrowseCourses = () => {
       )}
 
       {/* Course Grid */}
-      {courses.length > 0 && !loading && (
+      {filteredCourses.length > 0 && !loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
+          {filteredCourses.map((course) => (
             <div
-              key={course.id}
+              key={course._id}
+              onClick={() => navigate(`/learner/courses/${course._id}`)}
               className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-brand-300 transition-all duration-300 cursor-pointer"
             >
               {/* Course Image */}
               <div className="relative h-48 bg-gradient-to-br from-brand-500 to-brand-700 overflow-hidden">
                 <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                {course.image ? (
-                  <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                {course.thumbnail ? (
+                  <img src={getImageUrl(course.thumbnail)} alt={course.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <BookOpen className="w-16 h-16 text-white opacity-50" />
@@ -195,27 +282,26 @@ const BrowseCourses = () => {
                   </div>
                 </div>
 
-                {/* Price and Enroll */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    {course.price ? (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-slate-900">
-                          ${course.price}
-                        </span>
-                        {course.originalPrice && (
-                          <span className="text-sm text-slate-500 line-through">
-                            ${course.originalPrice}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-2xl font-bold text-green-600">Free</span>
-                    )}
-                  </div>
-                  <button className="px-6 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-semibold text-sm shadow-sm hover:shadow transition-all group-hover:scale-105">
-                    Enroll
-                  </button>
+                {/* Enroll Button */}
+                <div className="flex justify-end">
+                  {isEnrolled(course._id) ? (
+                    <button
+                      disabled
+                      className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-semibold text-sm shadow-sm cursor-default"
+                    >
+                      Enrolled
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEnroll(course);
+                      }}
+                      className="px-6 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-semibold text-sm shadow-sm hover:shadow transition-all group-hover:scale-105"
+                    >
+                      Enroll
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

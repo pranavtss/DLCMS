@@ -4,6 +4,7 @@ import Dashboard from '../components/admin/Dashboard';
 import Courses from '../components/admin/Courses';
 import Users from '../components/admin/Users';
 import Reports from '../components/admin/Reports';
+import CourseDetailPage from './CourseDetailPage';
 
 const AdminDashboard = () => {
   return (
@@ -18,6 +19,7 @@ const AdminDashboard = () => {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="courses" element={<Courses />} />
+            <Route path="courses/:courseId" element={<CourseDetailPage />} />
             <Route path="users" element={<Users />} />
             <Route path="reports" element={<Reports />} />
           </Routes>

@@ -46,7 +46,6 @@ const LoginForm = () => {
       }
       
       console.log('✅ Login successful, storing data...')
-      // Store user data in localStorage
       localStorage.setItem('userId', data.userId || data.id || '')
       localStorage.setItem('userName', data.name || 'User')
       localStorage.setItem('userRole', data.role)

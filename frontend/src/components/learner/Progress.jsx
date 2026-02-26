@@ -6,18 +6,14 @@ const Progress = () => {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Get user data from localStorage
   useEffect(() => {
     const storedName = localStorage.getItem('userName');
     if (storedName) {
       setUserName(storedName);
     }
-    // TODO: Fetch enrolled courses with progress from backend
-    // For now, using empty array
     setEnrolledCourses([]);
   }, []);
 
-  // Calculate overall stats
   const totalCourses = enrolledCourses.length;
   const completedCourses = enrolledCourses.filter(c => c.progress === 100).length;
   const totalHours = enrolledCourses.reduce((sum, c) => sum + (c.hoursSpent || 0), 0);
@@ -27,7 +23,6 @@ const Progress = () => {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-slate-900">Progress</h1>
         <p className="text-slate-600 mt-1">Track your learning journey</p>
