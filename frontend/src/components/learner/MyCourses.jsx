@@ -38,6 +38,13 @@ const MyCourses = () => {
     }
   };
 
+  const calculateProgress = (courseId, totalLessons) => {
+    if (!totalLessons) return 0;
+    const completed = JSON.parse(localStorage.getItem(`course_${courseId}_completed`) || '{}');
+    const completedCount = Object.values(completed).filter(Boolean).length;
+    return Math.round((completedCount / totalLessons) * 100);
+  };
+
   return (
     <div>
       {/* Header */}
@@ -91,11 +98,38 @@ const MyCourses = () => {
                     <span>{course.instructor}</span>
                   </div>
                 )}
+                
+                {/* Progress Bar */}
+                {course.lessons && course.lessons.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-slate-600">PROGRESS</span>
+                      <span className="text-xs font-bold text-slate-900">
+                        {calculateProgress(course._id, course.lessons.length)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div 
+                        className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${calculateProgress(course._id, course.lessons.length)}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 text-sm text-slate-600">
                   {course.duration && (
                     <>
                       <Clock className="w-4 h-4" />
                       <span>{course.duration}</span>
+                    </>
+                  )}
+                  {course.level && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <span>{course.level}</span>
                     </>
                   )}
                 </div>
