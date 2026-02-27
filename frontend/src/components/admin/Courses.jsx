@@ -175,8 +175,7 @@ const Courses = () => {
                 {/* Stats */}
                 <div className="text-xs text-slate-500 space-y-1 mb-4">
                   <p>Lessons: {Array.isArray(course.lessons) ? course.lessons.length : 0}</p>
-                  <p>Duration: {course.duration}</p>
-                  <p>Price: ${course.price}</p>
+                  <p>Duration: {course.duration} {!isNaN(course.duration) && 'weeks'}</p>
                 </div>
 
                 {/* Actions */}

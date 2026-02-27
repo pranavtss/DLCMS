@@ -223,7 +223,7 @@ const LearnerCourseDetailPage = () => {
               {course.duration && (
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-orange-500" />
-                  <span>{course.duration}</span>
+                  <span>{course.duration} {!isNaN(course.duration) && 'weeks'}</span>
                 </div>
               )}
               {course.level && (
@@ -300,14 +300,18 @@ const LearnerCourseDetailPage = () => {
           </p>
         </div>
 
-        <div className="divide-y divide-slate-200">
+        <div className="space-y-4 p-6">
           {course.lessons && course.lessons.length > 0 ? (
             course.lessons.map((lesson, index) => {
               const videoUrls = getLessonVideoUrls(lesson);
               const isExpanded = expandedLessons[lesson._id];
 
               return (
-                <div key={lesson._id} id={`lesson-${lesson._id}`} className="transition-colors">
+                <div
+                  key={lesson._id}
+                  id={`lesson-${lesson._id}`}
+                  className="transition-colors"
+                >
                   {/* Lesson Header */}
                   <div
                     className="px-6 py-4 cursor-pointer flex items-center justify-between hover:bg-slate-50"

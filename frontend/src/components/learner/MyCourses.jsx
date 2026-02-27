@@ -123,7 +123,7 @@ const MyCourses = () => {
                   {course.duration && (
                     <>
                       <Clock className="w-4 h-4" />
-                      <span>{course.duration}</span>
+                      <span>{course.duration} {!isNaN(course.duration) && 'weeks'}</span>
                     </>
                   )}
                   {course.level && (

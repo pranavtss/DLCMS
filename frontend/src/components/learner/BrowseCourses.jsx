@@ -278,7 +278,7 @@ const BrowseCourses = () => {
                   {/* Duration */}
                   <div className="flex items-center gap-1 text-slate-600">
                     <Clock className="w-4 h-4" />
-                    <span className="text-sm">{course.duration || 'N/A'}</span>
+                    <span className="text-sm">{course.duration ? `${course.duration}${!isNaN(course.duration) ? ' weeks' : ''}` : 'N/A'}</span>
                   </div>
                 </div>
 
