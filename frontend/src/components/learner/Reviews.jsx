@@ -14,11 +14,7 @@ const Reviews = () => {
   });
   const [hoverRating, setHoverRating] = useState(0);
 
-  // TODO: Fetch completed courses and reviews from backend
   useEffect(() => {
-    // Mock completed courses
-    // setCompletedCourses([]);
-    // setReviews([]);
   }, []);
 
   const handleRatingClick = (rating) => {
@@ -44,7 +40,6 @@ const Reviews = () => {
     setNewReview({ rating: 0, title: '', content: '', wouldRecommend: true });
     setIsWritingReview(false);
     setSelectedCourse(null);
-    // TODO: Save to backend
   };
 
   const renderStars = (rating, interactive = false, size = 'w-6 h-6') => {

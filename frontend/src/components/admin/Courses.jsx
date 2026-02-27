@@ -10,7 +10,6 @@ const Courses = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch courses on mount
   useEffect(() => {
     fetchCourses();
   }, []);

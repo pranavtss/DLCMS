@@ -168,7 +168,6 @@ const LearnerCourseDetailPage = () => {
 
   return (
     <div className="py-6">
-      {/* Back Button */}
       <button
         onClick={() => navigate('/learner/browse-courses')}
         className="flex items-center gap-2 px-4 py-2 text-brand-600 hover:text-brand-700 font-medium mb-6 transition-colors"
@@ -177,10 +176,8 @@ const LearnerCourseDetailPage = () => {
         Back to Courses
       </button>
 
-      {/* Course Header */}
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden mb-8">
         <div className="flex flex-col md:flex-row">
-          {/* Course Thumbnail */}
           <div className="w-full md:w-80 bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center p-8">
             {course.thumbnail ? (
               <img 
@@ -194,10 +191,8 @@ const LearnerCourseDetailPage = () => {
               </div>
             )}
           </div>
-          
-          {/* Course Info */}
+
           <div className="flex-1 p-8">
-            {/* Category Badge */}
             {course.category && (
               <div className="inline-block mb-4">
                 <span className="px-3 py-1 bg-orange-500 text-white text-xs font-bold uppercase rounded">
@@ -205,14 +200,13 @@ const LearnerCourseDetailPage = () => {
                 </span>
               </div>
             )}
-            
+
             <h1 className="text-3xl font-bold text-slate-900 mb-4">{course.title}</h1>
-            
+
             <p className="text-slate-600 mb-6 leading-relaxed">
               {course.description || 'No description available'}
             </p>
-            
-            {/* Course Meta Info */}
+
             <div className="flex flex-wrap items-center gap-6 mb-6 text-sm text-slate-600">
               {course.instructor && (
                 <div className="flex items-center gap-2">
@@ -234,7 +228,6 @@ const LearnerCourseDetailPage = () => {
               )}
             </div>
 
-            {/* Progress Bar */}
             {isEnrolled && (
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
@@ -254,7 +247,6 @@ const LearnerCourseDetailPage = () => {
               </div>
             )}
 
-            {/* Action Button */}
             <div className="flex gap-4">
               {isEnrolled ? (
                 <>
@@ -312,7 +304,6 @@ const LearnerCourseDetailPage = () => {
                   id={`lesson-${lesson._id}`}
                   className="transition-colors"
                 >
-                  {/* Lesson Header */}
                   <div
                     className="px-6 py-4 cursor-pointer flex items-center justify-between hover:bg-slate-50"
                     onClick={() => toggleLesson(lesson._id)}
@@ -332,11 +323,9 @@ const LearnerCourseDetailPage = () => {
                     </div>
                   </div>
 
-                  {/* Lesson Content */}
                   {isExpanded && (
                     <div className="px-6 pb-6 bg-slate-50">
                       <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-6">
-                        {/* Notes Section */}
                         {lesson.description && (
                           <div>
                             <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
@@ -353,7 +342,6 @@ const LearnerCourseDetailPage = () => {
                           </div>
                         )}
 
-                        {/* Course Materials Section */}
                         {lesson.materials && lesson.materials.length > 0 && (
                           <div>
                             <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
@@ -388,7 +376,6 @@ const LearnerCourseDetailPage = () => {
                           </div>
                         )}
 
-                        {/* Video Section */}
                         {videoUrls.length > 0 && (
                           <div>
                             <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
@@ -418,13 +405,11 @@ const LearnerCourseDetailPage = () => {
                                             e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
                                           }}
                                         />
-                                        {/* Play Button Overlay */}
                                         <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                                           <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
                                             <Play className="w-8 h-8 text-white fill-white ml-1" />
                                           </div>
                                         </div>
-                                        {/* Video Number Badge */}
                                         <div className="absolute top-2 right-2 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded">
                                           Video {vidIndex + 1}
                                         </div>
@@ -441,7 +426,6 @@ const LearnerCourseDetailPage = () => {
                           </div>
                         )}
 
-                        {/* Completion Toggle */}
                         <div className="pt-4 border-t border-slate-200">
                           <button
                             onClick={(e) => {
@@ -461,7 +445,6 @@ const LearnerCourseDetailPage = () => {
                           </button>
                         </div>
 
-                        {/* Empty State */}
                         {!lesson.description && videoUrls.length === 0 && (!lesson.materials || lesson.materials.length === 0) && (
                           <div className="text-center py-8 text-slate-500">
                             <BookOpen className="w-12 h-12 mx-auto mb-3 text-slate-300" />

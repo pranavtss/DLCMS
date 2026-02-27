@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Users, BarChart3, LogOut, BookMarked } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, BarChart3, LogOut, BookMarked, X } from 'lucide-react';
 
-const AdminSidebar = () => {
+const AdminSidebar = ({ isOpen = true, onClose }) => {
   const navigate = useNavigate();
 
   const handleSignOut = () => {
@@ -31,14 +31,24 @@ const AdminSidebar = () => {
   const userName = localStorage.getItem('userName') || 'Admin';
 
   return (
-    <div className="w-64 bg-[#0f172a] text-white flex flex-col h-screen fixed left-0 top-0">
-      {/* Logo */}
+    <div className={`w-64 bg-[#0f172a] text-white flex flex-col h-screen fixed left-0 top-0 z-40 transition-transform duration-300 ${
+      isOpen ? 'translate-x-0' : '-translate-x-full'
+    }`}>
       <div className="p-6 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
-            <BookMarked className="w-6 h-6" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center">
+              <BookMarked className="w-6 h-6" />
+            </div>
+            <span className="text-xl font-semibold">DLCMS</span>
           </div>
-          <span className="text-xl font-semibold">DLCMS</span>
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1 hover:bg-slate-700 rounded transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
       </div>
 

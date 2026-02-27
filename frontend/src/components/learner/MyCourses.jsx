@@ -62,7 +62,6 @@ const MyCourses = () => {
         </button>
       </div>
 
-      {/* Course Grid */}
       {enrolledCourses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {enrolledCourses.map((course) => (
@@ -98,8 +97,7 @@ const MyCourses = () => {
                     <span>{course.instructor}</span>
                   </div>
                 )}
-                
-                {/* Progress Bar */}
+
                 {course.lessons && course.lessons.length > 0 && (
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
@@ -139,7 +137,6 @@ const MyCourses = () => {
         </div>
       )}
 
-      {/* Empty State */}
       {enrolledCourses.length === 0 && !loading && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
           <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
