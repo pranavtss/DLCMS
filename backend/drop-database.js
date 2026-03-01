@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-
 async function dropDatabase() {
   try {
     await mongoose.connect('mongodb://127.0.0.1:27017/dlcms');
@@ -13,5 +12,6 @@ async function dropDatabase() {
     console.error('❌ Error dropping database:', error);
   }
 }
+
 
 dropDatabase();
