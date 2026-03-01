@@ -7,6 +7,7 @@ const fs = require("fs")
 const multer = require("multer")
 const User = require("./models/User")
 const Course = require("./models/Course")
+const Review = require("./models/Review")
 
 const app = express()
 
@@ -547,6 +548,101 @@ app.delete("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", asy
     res.json({ message: "Material deleted successfully" })
   } catch (error) {
     res.status(500).json({ message: "Failed to delete material", error: error.message })
+  }
+})
+
+app.post("/api/reviews", async (req, res) => {
+  try {
+    const { courseId, userId, userName, rating, comment } = req.body
+
+    if (!courseId || !userId || !rating || !comment) {
+      return res.status(400).json({ message: "All fields are required" })
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 1 and 5" })
+    }
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    const user = await User.findById(userId)
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    const existingReview = await Review.findOne({ courseId, userId })
+    if (existingReview) {
+      existingReview.rating = rating
+      existingReview.comment = comment
+      await existingReview.save()
+      console.log(`✅ Review updated for course: ${course.title}`)
+      return res.json({ message: "Review updated successfully", review: existingReview })
+    }
+
+    const review = await Review.create({
+      courseId,
+      userId,
+      userName: userName || user.name,
+      rating,
+      comment,
+    })
+
+    console.log(`✅ Review created for course: ${course.title}`)
+    res.status(201).json({ message: "Review submitted successfully", review })
+  } catch (error) {
+    console.error("❌ Review submission failed:", error)
+    res.status(500).json({ message: "Failed to submit review", error: error.message })
+  }
+})
+
+app.get("/api/reviews/course/:courseId", async (req, res) => {
+  try {
+    const { courseId } = req.params
+    const reviews = await Review.find({ courseId }).sort({ createdAt: -1 })
+    res.json(reviews)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch reviews", error: error.message })
+  }
+})
+
+app.get("/api/reviews/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params
+    const reviews = await Review.find({ userId }).populate('courseId', 'title thumbnail').sort({ createdAt: -1 })
+    res.json(reviews)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user reviews", error: error.message })
+  }
+})
+
+app.get("/api/admin/reviews", async (req, res) => {
+  try {
+    const reviews = await Review.find()
+      .populate('courseId', 'title thumbnail')
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
+    res.json(reviews)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch reviews", error: error.message })
+  }
+})
+
+app.delete("/api/reviews/:reviewId", async (req, res) => {
+  try {
+    const { reviewId } = req.params
+    const review = await Review.findByIdAndDelete(reviewId)
+    
+    if (!review) {
+      return res.status(404).json({ message: "Review not found" })
+    }
+
+    console.log(`✅ Review deleted`)
+    res.json({ message: "Review deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete review", error: error.message })
   }
 })
 

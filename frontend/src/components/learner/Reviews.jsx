@@ -1,45 +1,142 @@
 import { useState, useEffect } from 'react';
-import { Star, ThumbsUp, MessageSquare, Filter, BookOpen } from 'lucide-react';
+import { Star, BookOpen, Send, CheckCircle } from 'lucide-react';
 
 const Reviews = () => {
   const [completedCourses, setCompletedCourses] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isWritingReview, setIsWritingReview] = useState(false);
   const [newReview, setNewReview] = useState({
     rating: 0,
-    title: '',
-    content: '',
-    wouldRecommend: true
+    comment: ''
   });
   const [hoverRating, setHoverRating] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    loadCompletedCourses();
+    loadMyReviews();
   }, []);
+
+  const loadCompletedCourses = async () => {
+    try {
+      const enrolledIds = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
+      if (enrolledIds.length === 0) {
+        setCompletedCourses([]);
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/admin/courses');
+      if (!response.ok) throw new Error('Failed to fetch courses');
+      const allCourses = await response.json();
+      
+      const completed = allCourses.filter(course => {
+        if (!enrolledIds.includes(course._id)) return false;
+        
+        const totalLessons = course.lessons?.length || 0;
+        if (totalLessons === 0) return false;
+        
+        const completedData = JSON.parse(localStorage.getItem(`course_${course._id}_completed`) || '{}');
+        const completedCount = Object.values(completedData).filter(Boolean).length;
+        
+        return completedCount === totalLessons;
+      });
+      
+      setCompletedCourses(completed);
+    } catch (err) {
+      console.error('Error loading completed courses:', err);
+    }
+  };
+
+  const loadMyReviews = async () => {
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      const response = await fetch(`http://localhost:5000/api/reviews/user/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch reviews');
+      const reviews = await response.json();
+      setMyReviews(reviews);
+    } catch (err) {
+      console.error('Error loading reviews:', err);
+    }
+  };
 
   const handleRatingClick = (rating) => {
     setNewReview({ ...newReview, rating });
   };
 
-  const handleSubmitReview = () => {
-    if (!selectedCourse || !newReview.rating || !newReview.title.trim() || !newReview.content.trim()) {
-      alert('Please fill in all required fields');
+  const handleSubmitReview = async () => {
+    if (!selectedCourse || !newReview.rating || !newReview.comment.trim()) {
+      alert('Please provide both a rating and a comment');
       return;
     }
 
-    const review = {
-      id: Date.now(),
-      courseId: selectedCourse.id,
-      courseName: selectedCourse.title,
-      ...newReview,
-      createdAt: new Date().toISOString(),
-      userName: localStorage.getItem('userName') || 'User'
-    };
+    try {
+      setLoading(true);
+      const userId = localStorage.getItem('userId');
+      const userName = localStorage.getItem('userName') || 'User';
 
-    setReviews([review, ...reviews]);
-    setNewReview({ rating: 0, title: '', content: '', wouldRecommend: true });
-    setIsWritingReview(false);
-    setSelectedCourse(null);
+      const response = await fetch('http://localhost:5000/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseId: selectedCourse._id,
+          userId,
+          userName,
+          rating: newReview.rating,
+          comment: newReview.comment,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to submit review');
+      }
+
+      await loadMyReviews();
+      setNewReview({ rating: 0, comment: '' });
+      setIsWritingReview(false);
+      setSelectedCourse(null);
+      alert('Review submitted successfully! Your feedback is private and only visible to administrators.');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert(error.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!confirm('Are you sure you want to delete this review?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/reviews/${reviewId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete review');
+
+      await loadMyReviews();
+      alert('Review deleted successfully');
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      alert('Failed to delete review. Please try again.');
+    }
+  };
+
+  const handleEditReview = (review) => {
+    const course = completedCourses.find(c => c._id === review.courseId._id);
+    if (course) {
+      setSelectedCourse(course);
+      setNewReview({
+        rating: review.rating,
+        comment: review.comment,
+      });
+      setIsWritingReview(true);
+    }
   };
 
   const renderStars = (rating, interactive = false, size = 'w-6 h-6') => {
@@ -76,12 +173,16 @@ const Reviews = () => {
     });
   };
 
+  const hasReviewed = (courseId) => {
+    return myReviews.some(review => review.courseId?._id === courseId);
+  };
+
   return (
     <div>
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-slate-900">Course Reviews</h1>
-        <p className="text-slate-600 mt-1">Rate and review your completed courses</p>
+        <p className="text-slate-600 mt-1">Rate your completed courses and provide feedback</p>
       </div>
 
       {/* Completed Courses Section */}
@@ -96,19 +197,40 @@ const Reviews = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {completedCourses.map((course) => {
-              const existingReview = reviews.find(r => r.courseId === course.id);
+              const reviewed = hasReviewed(course._id);
+              const review = myReviews.find(r => r.courseId?._id === course._id);
+              
               return (
                 <div
-                  key={course.id}
-                  className="border border-slate-200 rounded-lg p-4 hover:border-brand-300 transition-colors"
+                  key={course._id}
+                  className="border border-slate-200 rounded-lg p-4 hover:border-teal-300 transition-colors"
                 >
-                  <h3 className="font-semibold text-slate-900 mb-2">{course.title}</h3>
-                  <p className="text-sm text-slate-600 mb-3">Completed {course.completedDate}</p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+                    <h3 className="font-semibold text-slate-900">{course.title}</h3>
+                  </div>
                   
-                  {existingReview ? (
-                    <div className="flex items-center gap-2 text-sm">
-                      {renderStars(existingReview.rating, false, 'w-4 h-4')}
-                      <span className="text-green-600 font-semibold">✓ Reviewed</span>
+                  {reviewed ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        {renderStars(review.rating, false, 'w-5 h-5')}
+                        <span className="text-sm text-slate-600">({review.rating}.0)</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditReview(review)}
+                          className="text-sm text-teal-600 hover:text-teal-700 font-semibold"
+                        >
+                          Edit Review
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          onClick={() => handleDeleteReview(review._id)}
+                          className="text-sm text-red-600 hover:text-red-700 font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <button
@@ -116,7 +238,7 @@ const Reviews = () => {
                         setSelectedCourse(course);
                         setIsWritingReview(true);
                       }}
-                      className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-semibold"
+                      className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-semibold"
                     >
                       Write Review
                     </button>
@@ -134,70 +256,46 @@ const Reviews = () => {
           <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-white border-b border-slate-200 p-6">
               <h2 className="text-xl font-semibold text-slate-900">Review: {selectedCourse.title}</h2>
-              <p className="text-sm text-slate-500 mt-1">Share your experience with this course</p>
+              <p className="text-sm text-slate-500 mt-1">Your feedback helps us improve our courses</p>
             </div>
 
             <div className="p-6 space-y-6">
               {/* Rating */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-3">
-                  Overall Rating <span className="text-red-500">*</span>
+                  Rating <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-4">
                   {renderStars(newReview.rating, true, 'w-10 h-10')}
                   {newReview.rating > 0 && (
-                    <span className="text-2xl font-bold text-brand-600">{newReview.rating}.0</span>
+                    <span className="text-2xl font-bold text-teal-600">{newReview.rating}.0</span>
                   )}
                 </div>
               </div>
 
-              {/* Review Title */}
+              {/* Review Comment */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Review Title <span className="text-red-500">*</span>
+                  Your Feedback <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="Summarize your experience..."
-                  value={newReview.title}
-                  onChange={(e) => setNewReview({ ...newReview, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                  maxLength={100}
-                />
-                <p className="text-xs text-slate-500 mt-1">{newReview.title.length}/100 characters</p>
-              </div>
-
-              {/* Review Content */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Your Review <span className="text-red-500">*</span>
-                </label>
+                <p className="text-xs text-slate-500 mb-2">
+                  Note: Your comments are private and only visible to administrators
+                </p>
                 <textarea
-                  placeholder="Share details about your experience, what you learned, and what could be improved..."
-                  value={newReview.content}
-                  onChange={(e) => setNewReview({ ...newReview, content: e.target.value })}
+                  placeholder="Share your thoughts about the course, what you learned, and suggestions for improvement..."
+                  value={newReview.comment}
+                  onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                   rows="8"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
                   maxLength={1000}
                 />
-                <p className="text-xs text-slate-500 mt-1">{newReview.content.length}/1000 characters</p>
+                <p className="text-xs text-slate-500 mt-1">{newReview.comment.length}/1000 characters</p>
               </div>
 
-              {/* Recommendation */}
-              <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="recommend"
-                  checked={newReview.wouldRecommend}
-                  onChange={(e) => setNewReview({ ...newReview, wouldRecommend: e.target.checked })}
-                  className="w-5 h-5 text-brand-600 rounded border-slate-300 focus:ring-brand-500"
-                />
-                <label htmlFor="recommend" className="flex items-center gap-2 cursor-pointer">
-                  <ThumbsUp className="w-5 h-5 text-slate-600" />
-                  <span className="text-sm font-semibold text-slate-700">
-                    I would recommend this course to others
-                  </span>
-                </label>
+              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                <p className="text-sm text-teal-800">
+                  <strong>Privacy Notice:</strong> Your star rating will be visible to other learners, but your written feedback will only be seen by course administrators. This allows us to maintain your privacy while using your insights to improve course quality.
+                </p>
               </div>
             </div>
 
@@ -206,73 +304,86 @@ const Reviews = () => {
                 onClick={() => {
                   setIsWritingReview(false);
                   setSelectedCourse(null);
-                  setNewReview({ rating: 0, title: '', content: '', wouldRecommend: true });
+                  setNewReview({ rating: 0, comment: '' });
                 }}
                 className="px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors font-semibold"
+                disabled={loading}
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitReview}
-                className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-semibold"
+                disabled={loading || !newReview.rating || !newReview.comment.trim()}
+                className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Submit Review
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Submit Review
+                  </>
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* My Reviews */}
+      {/* My Reviews Summary */}
       <div>
         <h2 className="text-xl font-semibold text-slate-900 mb-4">My Reviews</h2>
         
-        {reviews.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-brand-100 to-brand-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <MessageSquare className="w-12 h-12 text-brand-600" />
+        {myReviews.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+            <div className="w-16 h-16 bg-linear-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Star className="w-8 h-8 text-teal-600" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">No reviews yet</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">No reviews yet</h3>
             <p className="text-slate-500">
-              Complete courses and share your feedback to help other learners
+              Complete courses and share your feedback to help us improve
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {reviews.map((review) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {myReviews.map((review) => (
               <div
-                key={review.id}
-                className="bg-white rounded-xl shadow-sm border border-slate-200 p-6"
+                key={review._id}
+                className="bg-white rounded-xl shadow-sm border border-slate-200 p-5"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">{review.courseName}</h3>
-                    <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-slate-900 mb-2">
+                      {review.courseId?.title || 'Course'}
+                    </h3>
+                    <div className="flex items-center gap-2">
                       {renderStars(review.rating, false, 'w-5 h-5')}
-                      <span className="text-sm text-slate-500">{formatDate(review.createdAt)}</span>
+                      <span className="text-sm font-semibold text-slate-700">({review.rating}.0)</span>
                     </div>
                   </div>
-                  {review.wouldRecommend && (
-                    <div className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                      <ThumbsUp className="w-3 h-3" />
-                      Recommended
-                    </div>
-                  )}
                 </div>
 
-                <h4 className="font-semibold text-slate-900 mb-2">{review.title}</h4>
-                <p className="text-slate-600 leading-relaxed">{review.content}</p>
+                <p className="text-sm text-slate-500 mb-3">
+                  Reviewed on {formatDate(review.createdAt)}
+                </p>
 
-                <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between">
-                  <span className="text-sm text-slate-500">By {review.userName}</span>
-                  <div className="flex gap-2">
-                    <button className="text-sm text-slate-600 hover:text-brand-600 transition-colors font-semibold">
-                      Edit
-                    </button>
-                    <button className="text-sm text-slate-600 hover:text-red-600 transition-colors font-semibold">
-                      Delete
-                    </button>
-                  </div>
+                <div className="pt-3 border-t border-slate-200 flex gap-2">
+                  <button
+                    onClick={() => handleEditReview(review)}
+                    className="text-sm text-teal-600 hover:text-teal-700 font-semibold"
+                  >
+                    Edit
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    onClick={() => handleDeleteReview(review._id)}
+                    className="text-sm text-red-600 hover:text-red-700 font-semibold"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}

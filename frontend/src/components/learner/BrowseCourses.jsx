@@ -12,6 +12,7 @@ const BrowseCourses = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
+    const [courseRatings, setCourseRatings] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -20,6 +21,7 @@ const BrowseCourses = () => {
 
   useEffect(() => {
     fetchCourses();
+      fetchAllRatings();
     loadEnrolledCourses();
   }, []);
 
@@ -96,6 +98,39 @@ const BrowseCourses = () => {
 
     setFilteredCourses(result);
   }, [courses, searchQuery, selectedLevel, sortBy]);
+
+  const fetchAllRatings = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/reviews');
+      if (!response.ok) return;
+      const reviews = await response.json();
+      
+      const ratingsMap = {};
+      reviews.forEach(review => {
+        const courseId = review.courseId?._id || review.courseId;
+        if (!ratingsMap[courseId]) {
+          ratingsMap[courseId] = { total: 0, count: 0 };
+        }
+        ratingsMap[courseId].total += review.rating;
+        ratingsMap[courseId].count += 1;
+      });
+      
+      Object.keys(ratingsMap).forEach(courseId => {
+        const { total, count } = ratingsMap[courseId];
+        ratingsMap[courseId].average = (total / count).toFixed(1);
+      });
+      
+      setCourseRatings(ratingsMap);
+    } catch (err) {
+      console.error('Error fetching ratings:', err);
+    }
+  };
+
+  const getCourseRating = (courseId) => {
+    const rating = courseRatings[courseId];
+    if (!rating) return { average: null, count: 0 };
+    return { average: rating.average, count: rating.count };
+  };
 
   const levels = ['All Levels', 'Beginner', 'Intermediate', 'Advanced'];
 
@@ -258,16 +293,20 @@ const BrowseCourses = () => {
 
                 {/* Stats */}
                 <div className="flex items-center gap-4 mb-4 pb-4 border-b border-slate-200">
-                  {/* Rating */}
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                    <span className="text-sm font-semibold text-slate-900">
-                      {course.rating || '4.5'}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      ({course.reviews || '0'})
-                    </span>
-                  </div>
+                  {(() => {
+                    const { average, count } = getCourseRating(course._id);
+                    return average ? (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        <span className="text-sm font-semibold text-slate-900">
+                          {average}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          ({count})
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
 
                   {/* Students */}
                   <div className="flex items-center gap-1 text-slate-600">

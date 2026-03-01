@@ -5,6 +5,7 @@ import AdminSidebar from '../components/admin/AdminSidebar';
 import Dashboard from '../components/admin/Dashboard';
 import Courses from '../components/admin/Courses';
 import Users from '../components/admin/Users';
+import ReviewsManagement from '../components/admin/ReviewsManagement';
 import Reports from '../components/admin/Reports';
 import CourseDetailPage from './CourseDetailPage';
 
@@ -41,6 +42,7 @@ const AdminDashboard = () => {
             <Route path="courses" element={<Courses />} />
             <Route path="courses/:courseId" element={<CourseDetailPage />} />
             <Route path="users" element={<Users />} />
+                        <Route path="reviews" element={<ReviewsManagement />} />
             <Route path="reports" element={<Reports />} />
           </Routes>
         </div>

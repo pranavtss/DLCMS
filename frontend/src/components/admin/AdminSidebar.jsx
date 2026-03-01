@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Users, BarChart3, LogOut, BookMarked, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, BarChart3, LogOut, BookMarked, X, Star } from 'lucide-react';
 
 const AdminSidebar = ({ isOpen = true, onClose }) => {
   const navigate = useNavigate();
@@ -16,6 +16,7 @@ const AdminSidebar = ({ isOpen = true, onClose }) => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
     { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
     { icon: Users, label: 'Users', path: '/admin/users' },
+      { icon: Star, label: 'Reviews', path: '/admin/reviews' },
     { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
   ];
 
