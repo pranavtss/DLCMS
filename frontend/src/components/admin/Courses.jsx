@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Trash2, Edit2 } from 'lucide-react';
 import CourseForm from './CourseForm';
+import SearchBar from '../common/SearchBar';
 
 const Courses = () => {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ const Courses = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchCourses();
@@ -126,6 +128,16 @@ const Courses = () => {
         </div>
       )}
 
+      {/* Search Bar */}
+      {!loading && courses.length > 0 && (
+        <SearchBar
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search courses by title, instructor, or category..."
+          containerClassName="mb-8"
+        />
+      )}
+
       {/* Courses List or Empty State */}
       {!loading && courses.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
@@ -140,8 +152,30 @@ const Courses = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
+        <>
+          {courses.filter(course =>
+            course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            course.instructor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            course.category?.toLowerCase().includes(searchQuery.toLowerCase())
+          ).length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-brand-100 to-brand-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                <BookOpen className="w-12 h-12 text-brand-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                No courses match your search
+              </h3>
+              <p className="text-slate-500 max-w-md mx-auto">
+                Try adjusting your search terms
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courses.filter(course =>
+                course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                course.instructor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                course.category?.toLowerCase().includes(searchQuery.toLowerCase())
+              ).map((course) => (
             <div
               key={course._id}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
@@ -196,8 +230,10 @@ const Courses = () => {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, GraduationCap, Clock } from 'lucide-react';
+import SearchBar from '../common/SearchBar';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -12,6 +13,7 @@ const MyCourses = () => {
   const navigate = useNavigate();
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadEnrolledCourses();
@@ -62,9 +64,23 @@ const MyCourses = () => {
         </button>
       </div>
 
+      {/* Search Bar */}
+      {enrolledCourses.length > 0 && (
+        <SearchBar
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search your courses by title, instructor, or description..."
+          containerClassName="mb-8"
+        />
+      )}
+
       {enrolledCourses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {enrolledCourses.map((course) => (
+          {enrolledCourses.filter(course =>
+            course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            course.instructor?.toLowerCase().includes(searchQuery.toLowerCase())
+          ).map((course) => (
             <div
               key={course._id}
               onClick={() => navigate(`/learner/courses/${course._id}`)}
@@ -134,6 +150,24 @@ const MyCourses = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {enrolledCourses.length > 0 && enrolledCourses.filter(course =>
+        course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.instructor?.toLowerCase().includes(searchQuery.toLowerCase())
+      ).length === 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
+          <div className="w-24 h-24 bg-gradient-to-br from-brand-100 to-brand-200 rounded-full flex items-center justify-center mx-auto mb-6">
+            <BookOpen className="w-12 h-12 text-brand-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-slate-900 mb-2">
+            No courses match your search
+          </h3>
+          <p className="text-slate-500 max-w-md mx-auto">
+            Try adjusting your search terms
+          </p>
         </div>
       )}
 

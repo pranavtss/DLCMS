@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Star, MessageSquare, User, Calendar, Trash2, ArrowLeft, BookOpen, X } from 'lucide-react';
+import SearchBar from '../common/SearchBar';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -13,6 +14,7 @@ const ReviewsManagement = () => {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadReviews();
@@ -117,6 +119,12 @@ const ReviewsManagement = () => {
     return { average, count: statsReviews.length };
   };
 
+  const filteredCourses = courses.filter(course =>
+    course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.instructor?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -134,6 +142,15 @@ const ReviewsManagement = () => {
             <p className="text-slate-600 mt-1">Select a course to view its reviews</p>
           </div>
 
+          {courses.length > 0 && (
+            <SearchBar
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search courses by title, instructor, or description..."
+              containerClassName="mb-8"
+            />
+          )}
+
           {courses.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -142,9 +159,17 @@ const ReviewsManagement = () => {
               <h3 className="text-lg font-semibold text-slate-900 mb-2">No courses found</h3>
               <p className="text-slate-500">Create courses to start receiving reviews</p>
             </div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BookOpen className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">No courses match your search</h3>
+              <p className="text-slate-500">Try adjusting your search terms</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.map((course) => {
+              {filteredCourses.map((course) => {
                 const stats = getCourseStats(course._id);
                 return (
                   <button

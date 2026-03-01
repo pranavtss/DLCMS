@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, Filter, Clock, Users, Star } from 'lucide-react';
+import { BookOpen, Filter, Clock, Users, Star } from 'lucide-react';
+import SearchBar from '../common/SearchBar';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -151,14 +152,12 @@ const BrowseCourses = () => {
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search courses by title, instructor, or keyword..."
+          <div className="flex-1">
+            <SearchBar
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
+              placeholder="Search courses by title, instructor, or keyword..."
+              containerClassName="bg-transparent border-0 p-0 shadow-none"
             />
           </div>
 
