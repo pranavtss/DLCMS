@@ -35,31 +35,74 @@ const Reviews = () => {
 
   const loadCompletedCourses = async () => {
     try {
-      const enrolledIds = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-      if (enrolledIds.length === 0) {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        console.warn('⚠️  userId not found in localStorage');
         setCompletedCourses([]);
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/admin/courses');
-      if (!response.ok) throw new Error('Failed to fetch courses');
-      const allCourses = await response.json();
+      console.log('📥 Fetching completed courses from backend for userId:', userId);
       
-      const completed = allCourses.filter(course => {
-        if (!enrolledIds.includes(course._id)) return false;
-        
-        const totalLessons = course.lessons?.length || 0;
-        if (totalLessons === 0) return false;
-        
-        const completedData = JSON.parse(localStorage.getItem(`course_${course._id}_completed`) || '{}');
-        const completedCount = Object.values(completedData).filter(Boolean).length;
-        
-        return completedCount === totalLessons;
-      });
-      
-      setCompletedCourses(completed);
+      // Fetch from multiple sources
+      const [completedResponse, reviewsResponse, coursesResponse] = await Promise.all([
+        fetch(`http://localhost:5000/api/enrollments/completed/${userId}`),
+        fetch(`http://localhost:5000/api/reviews/user/${userId}`),
+        fetch('http://localhost:5000/api/admin/courses')
+      ]);
+
+      let completedCourses = [];
+      let completedCourseIds = new Set();
+
+      // 1. Get courses from enrollment records (100% completion)
+      if (completedResponse.ok) {
+        const completedData = await completedResponse.json();
+        const courses = completedData.map(enrollment => enrollment.courseId).filter(Boolean);
+        completedCourses = courses;
+        courses.forEach(c => completedCourseIds.add(c._id));
+        console.log('✅ Completed courses from enrollments:', courses);
+      }
+
+      // 2. Get reviewed courses (even if enrollment record doesn't exist)
+      if (reviewsResponse.ok) {
+        const reviews = await reviewsResponse.json();
+        reviews.forEach(review => {
+          if (review.courseId?._id) {
+            completedCourseIds.add(review.courseId._id);
+          }
+        });
+        console.log('✅ Reviewed course IDs:', Array.from(completedCourseIds));
+      }
+
+      // 3. Fallback to localStorage enrollment data for legacy entries
+      const enrolledIds = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
+      if (enrolledIds.length > 0) {
+        enrolledIds.forEach(courseId => {
+          const completedData = JSON.parse(localStorage.getItem(`course_${courseId}_completed`) || '{}');
+          const completedCount = Object.values(completedData).filter(Boolean).length;
+          
+          // If this was marked as completed in localStorage, include it
+          if (completedCount > 0) {
+            completedCourseIds.add(courseId);
+          }
+        });
+        console.log('✅ Added localStorage enrolled courses:', Array.from(completedCourseIds));
+      }
+
+      // Fetch all courses to fill in missing data
+      if (coursesResponse.ok) {
+        const allCourses = await coursesResponse.json();
+        const completedCoursesData = allCourses.filter(
+          course => completedCourseIds.has(course._id)
+        );
+        completedCourses = completedCoursesData;
+        console.log('✅ Final completed courses with full data:', completedCoursesData);
+      }
+
+      setCompletedCourses(completedCourses);
     } catch (err) {
       console.error('Error loading completed courses:', err);
+      setCompletedCourses([]);
     }
   };
 

@@ -11,6 +11,7 @@ const { OAuth2Client } = require("google-auth-library")
 const User = require("./models/User")
 const Course = require("./models/Course")
 const Review = require("./models/Review")
+const Enrollment = require("./models/Enrollment")
 
 const app = express()
 
@@ -710,6 +711,160 @@ app.delete("/api/reviews/:reviewId", async (req, res) => {
     res.json({ message: "Review deleted successfully" })
   } catch (error) {
     res.status(500).json({ message: "Failed to delete review", error: error.message })
+  }
+})
+
+// ===== ENROLLMENT ENDPOINTS =====
+app.post("/api/enrollments", async (req, res) => {
+  try {
+    const { userId, courseId } = req.body
+
+    if (!userId || !courseId) {
+      return res.status(400).json({ message: "userId and courseId are required" })
+    }
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    // Check if already enrolled
+    const existing = await Enrollment.findOne({ userId, courseId })
+    if (existing && existing.status === "enrolled") {
+      return res.status(409).json({ message: "Already enrolled in this course" })
+    }
+
+    // If previously unenrolled, re-enroll with same completion data
+    if (existing && existing.status === "unenrolled") {
+      existing.status = "enrolled"
+      existing.unenrolledAt = null
+      existing.lastAccessedAt = new Date()
+      await existing.save()
+      return res.json({ message: "Re-enrolled successfully", enrollment: existing })
+    }
+
+    const enrollment = await Enrollment.create({
+      userId,
+      courseId,
+      status: "enrolled",
+      completedLessons: new Map(),
+      completionPercentage: 0,
+    })
+
+    console.log(`✅ User enrolled in course: ${course.title}`)
+    res.status(201).json({ message: "Enrolled successfully", enrollment })
+  } catch (error) {
+    console.error("❌ Enrollment error:", error)
+    res.status(500).json({ message: "Failed to enroll", error: error.message })
+  }
+})
+
+app.delete("/api/enrollments/:courseId", async (req, res) => {
+  try {
+    const { courseId } = req.params
+    const userId = req.body.userId
+    
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" })
+    }
+
+    const enrollment = await Enrollment.findOne({ userId, courseId })
+    if (!enrollment) {
+      return res.status(404).json({ message: "Enrollment not found" })
+    }
+
+    // Mark as unenrolled instead of deleting (preserve completion data for reviews)
+    enrollment.status = "unenrolled"
+    enrollment.unenrolledAt = new Date()
+    await enrollment.save()
+
+    console.log(`✅ User unenrolled from course`)
+    res.json({ message: "Unenrolled successfully" })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to unenroll", error: error.message })
+  }
+})
+
+app.get("/api/enrollments/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params
+    const enrollments = await Enrollment.find({ userId, status: "enrolled" })
+      .populate('courseId', 'title description instructor category level duration thumbnail')
+      .sort({ enrolledAt: -1 })
+    
+    res.json(enrollments)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch enrollments", error: error.message })
+  }
+})
+
+app.get("/api/enrollments/course/:courseId", async (req, res) => {
+  try {
+    const { courseId } = req.params
+    const enrollments = await Enrollment.find({ courseId, status: "enrolled" })
+      .populate('userId', 'name email')
+      .sort({ enrolledAt: -1 })
+    
+    res.json(enrollments)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch course enrollments", error: error.message })
+  }
+})
+
+app.get("/api/enrollments/completed/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params
+
+    // Get all enrollments (including unenrolled) with 100% completion
+    const enrollments = await Enrollment.find({
+      userId,
+      completionPercentage: 100
+    })
+      .populate('courseId', 'title description instructor category level duration thumbnail lessons')
+      .sort({ enrolledAt: -1 })
+
+    res.json(enrollments)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch completed courses", error: error.message })
+  }
+})
+
+app.put("/api/enrollments/progress", async (req, res) => {
+  try {
+    const { userId, courseId, lessonId, completed } = req.body
+
+    if (!userId || !courseId || !lessonId) {
+      return res.status(400).json({ message: "userId, courseId, and lessonId are required" })
+    }
+
+    const enrollment = await Enrollment.findOne({ userId, courseId })
+    if (!enrollment) {
+      return res.status(404).json({ message: "Enrollment not found" })
+    }
+
+    const course = await Course.findById(courseId)
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    // Update completed lessons
+    enrollment.completedLessons.set(lessonId, completed === true)
+
+    // Calculate completion percentage
+    const totalLessons = course.lessons?.length || 0
+    if (totalLessons > 0) {
+      const completedCount = Array.from(enrollment.completedLessons.values()).filter(Boolean).length
+      enrollment.completionPercentage = Math.round((completedCount / totalLessons) * 100)
+    }
+
+    enrollment.lastAccessedAt = new Date()
+    await enrollment.save()
+
+    console.log(`✅ Enrollment progress updated: ${enrollment.completionPercentage}%`)
+    res.json({ message: "Progress updated", enrollment })
+  } catch (error) {
+    console.error("❌ Progress update error:", error)
+    res.status(500).json({ message: "Failed to update progress", error: error.message })
   }
 })
 

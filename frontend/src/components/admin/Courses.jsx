@@ -4,6 +4,12 @@ import { Plus, BookOpen, Trash2, Edit2 } from 'lucide-react';
 import CourseForm from './CourseForm';
 import SearchBar from '../common/SearchBar';
 
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `http://localhost:5000${path}`;
+};
+
 const Courses = () => {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
@@ -181,8 +187,16 @@ const Courses = () => {
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
             >
               {/* Course Image */}
-              <div className="h-40 bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
-                <BookOpen className="w-12 h-12 text-white opacity-50" />
+              <div className="h-40 bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center overflow-hidden">
+                {course.thumbnail ? (
+                  <img
+                    src={getImageUrl(course.thumbnail)}
+                    alt={course.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <BookOpen className="w-12 h-12 text-white opacity-50" />
+                )}
               </div>
 
               {/* Course Content */}
