@@ -292,6 +292,62 @@ app.get("/api/courses", async (req, res) => {
   }
 })
 
+// ===== USER MANAGEMENT ENDPOINTS =====
+app.get("/api/admin/users", async (req, res) => {
+  try {
+    const users = await User.find().select('-password').sort({ createdAt: -1 })
+    res.json(users)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch users", error: error.message })
+  }
+})
+
+app.get("/api/admin/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    const user = await User.findById(id).select('-password')
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+    
+    res.json(user)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user", error: error.message })
+  }
+})
+
+app.delete("/api/admin/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    // Prevent deleting the only admin
+    const userToDelete = await User.findById(id)
+    if (!userToDelete) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    if (userToDelete.role === "Admin") {
+      const adminCount = await User.countDocuments({ role: "Admin" })
+      if (adminCount === 1) {
+        return res.status(403).json({ message: "Cannot delete the last admin user" })
+      }
+    }
+    
+    const deletedUser = await User.findByIdAndDelete(id)
+    
+    // Also delete their enrollments and reviews
+    await Enrollment.deleteMany({ userId: id })
+    await Review.deleteMany({ userId: id })
+    
+    console.log(`✅ User deleted: ${deletedUser.name} (${deletedUser.email})`)
+    res.json({ message: "User deleted successfully" })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete user", error: error.message })
+  }
+})
+
+// ===== COURSES ENDPOINTS =====
 app.get("/api/admin/courses", async (req, res) => {
   try {
     const courses = await Course.find().sort({ createdAt: -1 })
@@ -808,6 +864,19 @@ app.get("/api/enrollments/course/:courseId", async (req, res) => {
     res.json(enrollments)
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch course enrollments", error: error.message })
+  }
+})
+
+app.get("/api/enrollments/all", async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find()
+      .populate('userId', 'name email')
+      .populate('courseId', 'title')
+      .sort({ enrolledAt: -1 })
+    
+    res.json(enrollments)
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch enrollments", error: error.message })
   }
 })
 
