@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import TopBar from "../components/login/TopBar"
 
 const Register = () => {
   const navigate = useNavigate()
+  const googleButtonRef = useRef(null)
   const [role, setRole] = useState("Learner")
   const [formState, setFormState] = useState({
     name: "",
@@ -11,6 +12,67 @@ const Register = () => {
     password: "",
   })
   const [message, setMessage] = useState("")
+
+  const handleGoogleLogin = async (response) => {
+    try {
+      const apiResponse = await fetch("http://localhost:5000/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: response.credential }),
+      })
+
+      const data = await apiResponse.json()
+
+      if (!apiResponse.ok) {
+        setMessage(data.message || "Google registration failed.")
+        return
+      }
+
+      localStorage.setItem("userId", data.userId || data.id || "")
+      localStorage.setItem("userName", data.name || "User")
+      localStorage.setItem("userRole", data.role)
+
+      const target = data.role === "Admin" ? "/admin" : "/learner"
+      navigate(target)
+    } catch (error) {
+      setMessage("Google registration failed. Please try again.")
+    }
+  }
+
+  useEffect(() => {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!googleClientId || !googleButtonRef.current) {
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = "https://accounts.google.com/gsi/client"
+    script.async = true
+    script.defer = true
+    script.onload = () => {
+      if (!window.google || !googleButtonRef.current) return
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleLogin,
+      })
+
+      googleButtonRef.current.innerHTML = ""
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        width: 320,
+      })
+    }
+
+    document.body.appendChild(script)
+
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script)
+      }
+    }
+  }, [])
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -122,6 +184,23 @@ const Register = () => {
               <p className="rounded-2xl bg-brand-50 px-4 py-3 text-xs text-brand-700">{message}</p>
             )}
           </form>
+
+          <div className="mt-4">
+            <div className="my-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">or</span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+              <div className="flex justify-center">
+                <div ref={googleButtonRef} />
+              </div>
+            ) : (
+              <p className="text-center text-xs text-slate-500">
+                Google registration is not configured. Set VITE_GOOGLE_CLIENT_ID in frontend/.env.local and restart.
+              </p>
+            )}
+          </div>
 
           <p className="mt-6 text-center text-xs text-slate-500">
             Already have an account? <span className="font-semibold text-brand-600" onClick={() => navigate("/login")}>Sign in</span>

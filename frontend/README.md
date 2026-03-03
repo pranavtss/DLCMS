@@ -19,4 +19,7 @@ If you are developing a production application, we recommend using TypeScript wi
 
 1. Copy `.env.example` values into `.env.local`.
 2. Set `VITE_GOOGLE_CLIENT_ID` to your Google OAuth Web Client ID.
-3. Restart the Vite dev server after updating env values.
+3. In Google Cloud Console (APIs & Services → Credentials → your OAuth 2.0 Client ID), add these Authorized JavaScript origins:
+	- `http://localhost:5173`
+	- `http://127.0.0.1:5173`
+4. Restart the Vite dev server after updating env values.
