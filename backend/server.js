@@ -153,7 +153,6 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(403).json({ message: "Admin account is reserved." })
     }
     
-    // Block Admin creation unless secret is provided
     if (role === "Admin") {
       const ADMIN_SECRET = process.env.ADMIN_SECRET || "dlcms-admin-2026"
       if (adminSecret !== ADMIN_SECRET) {
@@ -282,7 +281,6 @@ app.post("/api/uploads", (req, res, next) => {
   })
 })
 
-// ===== COURSES ENDPOINTS =====
 app.get("/api/courses", async (req, res) => {
   try {
     const courses = await Course.find({ isPublished: true }).sort({ createdAt: -1 })
@@ -292,7 +290,6 @@ app.get("/api/courses", async (req, res) => {
   }
 })
 
-// ===== USER MANAGEMENT ENDPOINTS =====
 app.get("/api/admin/users", async (req, res) => {
   try {
     const users = await User.find().select('-password').sort({ createdAt: -1 })
@@ -321,7 +318,6 @@ app.delete("/api/admin/users/:id", async (req, res) => {
   try {
     const { id } = req.params
     
-    // Prevent deleting the only admin
     const userToDelete = await User.findById(id)
     if (!userToDelete) {
       return res.status(404).json({ message: "User not found" })
@@ -336,7 +332,6 @@ app.delete("/api/admin/users/:id", async (req, res) => {
     
     const deletedUser = await User.findByIdAndDelete(id)
     
-    // Also delete their enrollments and reviews
     await Enrollment.deleteMany({ userId: id })
     await Review.deleteMany({ userId: id })
     
@@ -347,7 +342,6 @@ app.delete("/api/admin/users/:id", async (req, res) => {
   }
 })
 
-// ===== COURSES ENDPOINTS =====
 app.get("/api/admin/courses", async (req, res) => {
   try {
     const courses = await Course.find().sort({ createdAt: -1 })
@@ -374,7 +368,7 @@ app.get("/api/admin/courses/:id", async (req, res) => {
 
 app.post("/api/courses", async (req, res) => {
   try {
-    const { title, description, instructor, category, level, duration, lessons, price, originalPrice } = req.body
+    const { title, description, instructor, category, level, duration, lessons, price, originalPrice, thumbnail } = req.body
     const userId = req.body.userId || req.headers['x-user-id']
     
     if (!title || !description || !instructor || !category) {
@@ -393,6 +387,7 @@ app.post("/api/courses", async (req, res) => {
       lessons: normalizedLessons,
       price: price || 0,
       originalPrice,
+      thumbnail,
       isPublished: true,
       createdBy: userId,
     })
@@ -440,7 +435,6 @@ app.delete("/api/courses/:id", async (req, res) => {
   }
 })
 
-// Lesson Management Endpoints
 app.post("/api/courses/:courseId/lessons", async (req, res) => {
   try {
     const { courseId } = req.params
@@ -451,12 +445,10 @@ app.post("/api/courses/:courseId/lessons", async (req, res) => {
       return res.status(404).json({ message: "Course not found" })
     }
 
-    // Ensure lessons array exists
     if (!course.lessons) {
       course.lessons = []
     }
 
-    // Add new lesson
     const normalizedVideoUrls = Array.isArray(videoUrls)
       ? videoUrls
       : videoUrl
@@ -497,7 +489,6 @@ app.patch("/api/courses/:courseId/lessons/:lessonId", async (req, res) => {
       return res.status(404).json({ message: "Lesson not found" })
     }
 
-    // Update lesson fields
     const normalizedVideoUrls = Array.isArray(videoUrls)
       ? videoUrls
       : videoUrl
@@ -547,7 +538,6 @@ app.delete("/api/courses/:courseId/lessons/:lessonId", async (req, res) => {
   }
 })
 
-// Material Management Endpoints
 app.post("/api/courses/:courseId/lessons/:lessonId/materials", async (req, res) => {
   try {
     const { courseId, lessonId } = req.params
@@ -563,7 +553,6 @@ app.post("/api/courses/:courseId/lessons/:lessonId/materials", async (req, res) 
       return res.status(404).json({ message: "Lesson not found" })
     }
 
-    // Ensure materials array exists
     if (!lesson.materials) {
       lesson.materials = []
     }
@@ -612,7 +601,6 @@ app.patch("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", asyn
 
     let material = lesson.materials.id(materialId)
     
-    // Fallback: if .id() doesn't work, search manually
     if (!material) {
       console.log(`  - .id() method didn't find material, trying manual search...`)
       material = lesson.materials.find(m => m._id.toString() === materialId.toString())
@@ -653,7 +641,6 @@ app.delete("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", asy
 
     let material = lesson.materials.id(materialId)
     
-    // Fallback: if .id() doesn't work, search manually
     if (!material) {
       material = lesson.materials.find(m => m._id.toString() === materialId.toString())
     }
@@ -770,7 +757,6 @@ app.delete("/api/reviews/:reviewId", async (req, res) => {
   }
 })
 
-// ===== ENROLLMENT ENDPOINTS =====
 app.post("/api/enrollments", async (req, res) => {
   try {
     const { userId, courseId } = req.body
@@ -784,19 +770,23 @@ app.post("/api/enrollments", async (req, res) => {
       return res.status(404).json({ message: "Course not found" })
     }
 
-    // Check if already enrolled
     const existing = await Enrollment.findOne({ userId, courseId })
     if (existing && existing.status === "enrolled") {
       return res.status(409).json({ message: "Already enrolled in this course" })
     }
 
-    // If previously unenrolled, re-enroll with same completion data
     if (existing && existing.status === "unenrolled") {
       existing.status = "enrolled"
       existing.unenrolledAt = null
       existing.lastAccessedAt = new Date()
       await existing.save()
-      return res.json({ message: "Re-enrolled successfully", enrollment: existing })
+      await Course.updateOne({ _id: courseId }, { $inc: { students: 1 } })
+      const updatedCourse = await Course.findById(courseId).select("students")
+      return res.json({
+        message: "Re-enrolled successfully",
+        enrollment: existing,
+        students: updatedCourse?.students ?? 0,
+      })
     }
 
     const enrollment = await Enrollment.create({
@@ -807,8 +797,15 @@ app.post("/api/enrollments", async (req, res) => {
       completionPercentage: 0,
     })
 
+    await Course.updateOne({ _id: courseId }, { $inc: { students: 1 } })
+    const updatedCourse = await Course.findById(courseId).select("students")
+
     console.log(`✅ User enrolled in course: ${course.title}`)
-    res.status(201).json({ message: "Enrolled successfully", enrollment })
+    res.status(201).json({
+      message: "Enrolled successfully",
+      enrollment,
+      students: updatedCourse?.students ?? 0,
+    })
   } catch (error) {
     console.error("❌ Enrollment error:", error)
     res.status(500).json({ message: "Failed to enroll", error: error.message })
@@ -829,13 +826,15 @@ app.delete("/api/enrollments/:courseId", async (req, res) => {
       return res.status(404).json({ message: "Enrollment not found" })
     }
 
-    // Mark as unenrolled instead of deleting (preserve completion data for reviews)
     enrollment.status = "unenrolled"
     enrollment.unenrolledAt = new Date()
     await enrollment.save()
 
+    await Course.updateOne({ _id: courseId, students: { $gt: 0 } }, { $inc: { students: -1 } })
+    const updatedCourse = await Course.findById(courseId).select("students")
+
     console.log(`✅ User unenrolled from course`)
-    res.json({ message: "Unenrolled successfully" })
+    res.json({ message: "Unenrolled successfully", students: updatedCourse?.students ?? 0 })
   } catch (error) {
     res.status(500).json({ message: "Failed to unenroll", error: error.message })
   }
@@ -845,7 +844,7 @@ app.get("/api/enrollments/user/:userId", async (req, res) => {
   try {
     const { userId } = req.params
     const enrollments = await Enrollment.find({ userId, status: "enrolled" })
-      .populate('courseId', 'title description instructor category level duration thumbnail')
+      .populate('courseId', 'title description instructor category level duration thumbnail lessons students')
       .sort({ enrolledAt: -1 })
     
     res.json(enrollments)
@@ -884,7 +883,6 @@ app.get("/api/enrollments/completed/:userId", async (req, res) => {
   try {
     const { userId } = req.params
 
-    // Get all enrollments (including unenrolled) with 100% completion
     const enrollments = await Enrollment.find({
       userId,
       completionPercentage: 100
@@ -916,10 +914,8 @@ app.put("/api/enrollments/progress", async (req, res) => {
       return res.status(404).json({ message: "Course not found" })
     }
 
-    // Update completed lessons
     enrollment.completedLessons.set(lessonId, completed === true)
 
-    // Calculate completion percentage
     const totalLessons = course.lessons?.length || 0
     if (totalLessons > 0) {
       const completedCount = Array.from(enrollment.completedLessons.values()).filter(Boolean).length
@@ -934,6 +930,38 @@ app.put("/api/enrollments/progress", async (req, res) => {
   } catch (error) {
     console.error("❌ Progress update error:", error)
     res.status(500).json({ message: "Failed to update progress", error: error.message })
+  }
+})
+
+app.post("/api/admin/sync-enrollment-counts", async (req, res) => {
+  try {
+    const courses = await Course.find()
+    let updated = 0
+
+    for (const course of courses) {
+      const enrollmentCount = await Enrollment.countDocuments({
+        courseId: course._id,
+        status: "enrolled"
+      })
+
+      if (course.students !== enrollmentCount) {
+        await Course.updateOne(
+          { _id: course._id },
+          { $set: { students: enrollmentCount } }
+        )
+        updated++
+        console.log(`✅ Updated ${course.title}: ${course.students} → ${enrollmentCount} students`)
+      }
+    }
+
+    res.json({
+      message: "Enrollment counts synchronized successfully",
+      coursesUpdated: updated,
+      totalCourses: courses.length
+    })
+  } catch (error) {
+    console.error("❌ Sync enrollment counts error:", error)
+    res.status(500).json({ message: "Failed to sync enrollment counts", error: error.message })
   }
 })
 

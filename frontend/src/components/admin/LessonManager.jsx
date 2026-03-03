@@ -181,7 +181,6 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
   const handleUploadMaterial = async () => {
     if (!selectedFile) return;
 
-    // Check file size (100MB limit for educational materials)
     const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
     if (selectedFile.size > MAX_FILE_SIZE) {
       const sizeInMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
@@ -377,7 +376,6 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
         </div>
       )}
 
-      {/* Add Lesson Form */}
       {showLessonForm && (
         <form onSubmit={handleAddLesson} className="bg-slate-50 p-4 rounded-lg mb-6 space-y-3">
           <div>
@@ -442,7 +440,6 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
         </form>
       )}
 
-      {/* Lessons List */}
       {lessons && lessons.length > 0 ? (
         <div className="space-y-3">
           {lessons.map((lesson) => (
@@ -487,7 +484,6 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                 </div>
               </div>
 
-              {/* Lesson Details */}
               {expandedLesson === lesson._id && (
                 <div className="border-t border-slate-200 bg-slate-50 p-4 space-y-4">
                   {editingLessonId === lesson._id ? (
@@ -564,7 +560,6 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                     </div>
                   ) : (
                     <>
-                      {/* Video URLs with Thumbnails */}
                       {getLessonVideoUrls(lesson).length > 0 && (
                         <div>
                           <label className="text-sm font-medium text-slate-700 block mb-2">
@@ -622,7 +617,6 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                     </>
                   )}
 
-                  {/* Materials Section */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-sm font-medium text-slate-700">Materials</label>

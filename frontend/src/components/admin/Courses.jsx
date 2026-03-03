@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, Trash2, Edit2 } from 'lucide-react';
+import { Plus, BookOpen, Trash2, Edit2, Users } from 'lucide-react';
 import CourseForm from './CourseForm';
 import SearchBar from '../common/SearchBar';
 
@@ -58,6 +58,7 @@ const Courses = () => {
           lessons: formData.lessons,
           price: parseFloat(formData.price),
           originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
+          thumbnail: formData.thumbnail,
           userId,
         }),
       });
@@ -68,7 +69,6 @@ const Courses = () => {
         throw new Error(data.message || 'Failed to create course');
       }
 
-      // Refresh courses list
       fetchCourses();
     } catch (err) {
       throw err;
@@ -98,7 +98,6 @@ const Courses = () => {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Courses</h1>
@@ -113,28 +112,24 @@ const Courses = () => {
         </button>
       </div>
 
-      {/* Course Form Modal */}
       <CourseForm
         isOpen={showForm}
         onClose={() => setShowForm(false)}
         onSubmit={handleCreateCourse}
       />
 
-      {/* Error State */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
           {error}
         </div>
       )}
 
-      {/* Loading State */}
       {loading && (
         <div className="text-center py-8">
           <p className="text-slate-500">Loading courses...</p>
         </div>
       )}
 
-      {/* Search Bar */}
       {!loading && courses.length > 0 && (
         <SearchBar
           value={searchQuery}
@@ -144,7 +139,6 @@ const Courses = () => {
         />
       )}
 
-      {/* Courses List or Empty State */}
       {!loading && courses.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
           <div className="w-24 h-24 bg-gradient-to-br from-brand-100 to-brand-200 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -186,7 +180,6 @@ const Courses = () => {
               key={course._id}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
             >
-              {/* Course Image */}
               <div className="h-40 bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center overflow-hidden">
                 {course.thumbnail ? (
                   <img
@@ -199,9 +192,7 @@ const Courses = () => {
                 )}
               </div>
 
-              {/* Course Content */}
               <div className="p-6">
-                {/* Category & Level */}
                 <div className="flex gap-2 mb-3">
                   <span className="text-xs font-semibold px-3 py-1 bg-brand-100 text-brand-700 rounded-full">
                     {course.category}
@@ -211,21 +202,23 @@ const Courses = () => {
                   </span>
                 </div>
 
-                {/* Title */}
                 <h3 className="font-bold text-lg text-slate-900 mb-2 line-clamp-2">
                   {course.title}
                 </h3>
 
-                {/* Instructor */}
                 <p className="text-sm text-slate-600 mb-4">{course.instructor}</p>
 
-                {/* Stats */}
                 <div className="text-xs text-slate-500 space-y-1 mb-4">
-                  <p>Lessons: {Array.isArray(course.lessons) ? course.lessons.length : 0}</p>
+                  <div className="flex items-center justify-between">
+                    <p>Lessons: {Array.isArray(course.lessons) ? course.lessons.length : 0}</p>
+                    <div className="flex items-center gap-1 text-brand-600">
+                      <Users className="w-4 h-4" />
+                      <span className="font-semibold">{course.students || 0}</span>
+                    </div>
+                  </div>
                   <p>Duration: {course.duration} {!isNaN(course.duration) && 'weeks'}</p>
                 </div>
 
-                {/* Actions */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => navigate(`/admin/courses/${course._id}`)}

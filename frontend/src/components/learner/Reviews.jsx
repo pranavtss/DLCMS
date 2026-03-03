@@ -21,7 +21,6 @@ const Reviews = () => {
     loadData();
   }, []);
 
-  // Reload reviews when page becomes visible (e.g., after browser tab switch)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -44,7 +43,6 @@ const Reviews = () => {
 
       console.log('📥 Fetching completed courses from backend for userId:', userId);
       
-      // Fetch from multiple sources
       const [completedResponse, reviewsResponse, coursesResponse] = await Promise.all([
         fetch(`http://localhost:5000/api/enrollments/completed/${userId}`),
         fetch(`http://localhost:5000/api/reviews/user/${userId}`),
@@ -54,7 +52,6 @@ const Reviews = () => {
       let completedCourses = [];
       let completedCourseIds = new Set();
 
-      // 1. Get courses from enrollment records (100% completion)
       if (completedResponse.ok) {
         const completedData = await completedResponse.json();
         const courses = completedData.map(enrollment => enrollment.courseId).filter(Boolean);
@@ -63,7 +60,6 @@ const Reviews = () => {
         console.log('✅ Completed courses from enrollments:', courses);
       }
 
-      // 2. Get reviewed courses (even if enrollment record doesn't exist)
       if (reviewsResponse.ok) {
         const reviews = await reviewsResponse.json();
         reviews.forEach(review => {
@@ -74,24 +70,21 @@ const Reviews = () => {
         console.log('✅ Reviewed course IDs:', Array.from(completedCourseIds));
       }
 
-      // 3. Fallback to localStorage enrollment data for legacy entries
-      const enrolledIds = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-      if (enrolledIds.length > 0) {
-        enrolledIds.forEach(courseId => {
-          const completedData = JSON.parse(localStorage.getItem(`course_${courseId}_completed`) || '{}');
+      let allCourses = [];
+      if (coursesResponse.ok) {
+        allCourses = await coursesResponse.json();
+        
+        allCourses.forEach(course => {
+          const completedData = JSON.parse(localStorage.getItem(`course_${course._id}_completed`) || '{}');
           const completedCount = Object.values(completedData).filter(Boolean).length;
+          const totalLessons = course.lessons?.length || 0;
           
-          // If this was marked as completed in localStorage, include it
-          if (completedCount > 0) {
-            completedCourseIds.add(courseId);
+          if (totalLessons > 0 && completedCount === totalLessons) {
+            completedCourseIds.add(course._id);
+            console.log(`✅ Course ${course.title} is 100% complete (${completedCount}/${totalLessons})`);
           }
         });
-        console.log('✅ Added localStorage enrolled courses:', Array.from(completedCourseIds));
-      }
-
-      // Fetch all courses to fill in missing data
-      if (coursesResponse.ok) {
-        const allCourses = await coursesResponse.json();
+        
         const completedCoursesData = allCourses.filter(
           course => completedCourseIds.has(course._id)
         );
@@ -169,7 +162,6 @@ const Reviews = () => {
       const result = await response.json();
       console.log('✅ Review submitted successfully:', result);
       
-      // Wait a moment for backend to process, then reload reviews
       await new Promise(resolve => setTimeout(resolve, 300));
       await loadMyReviews();
       
@@ -255,13 +247,11 @@ const Reviews = () => {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-slate-900">Course Reviews</h1>
         <p className="text-slate-600 mt-1">Rate your completed courses and provide feedback</p>
       </div>
 
-      {/* Completed Courses Section */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <h2 className="text-xl font-semibold text-slate-900 mb-4">Rate Your Completed Courses</h2>
         
@@ -271,7 +261,7 @@ const Reviews = () => {
             <p className="text-slate-500">No completed courses yet. Complete a course to leave a review!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-4">
             {completedCourses.map((course) => {
               const reviewed = hasReviewed(course._id);
               const review = myReviews.find(r => r.courseId?._id === course._id);
@@ -279,11 +269,11 @@ const Reviews = () => {
               return (
                 <div
                   key={course._id}
-                  className="border border-slate-200 rounded-lg p-4 hover:border-teal-300 transition-colors"
+                  className="border border-slate-200 rounded-lg p-4 hover:border-teal-300 transition-colors inline-block"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-                    <h3 className="font-semibold text-slate-900">{course.title}</h3>
+                    <h3 className="font-semibold text-slate-900 whitespace-nowrap">{course.title}</h3>
                   </div>
                   
                   {reviewed ? (
@@ -326,7 +316,6 @@ const Reviews = () => {
         )}
       </div>
 
-      {/* Write Review Modal */}
       {isWritingReview && selectedCourse && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
@@ -336,7 +325,6 @@ const Reviews = () => {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Rating */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-3">
                   Rating <span className="text-red-500">*</span>
@@ -349,7 +337,6 @@ const Reviews = () => {
                 </div>
               </div>
 
-              {/* Review Comment */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Your Feedback <span className="text-red-500">*</span>
@@ -409,7 +396,6 @@ const Reviews = () => {
         </div>
       )}
 
-      {/* My Reviews Summary */}
       <div>
         <h2 className="text-xl font-semibold text-slate-900 mb-4">My Reviews</h2>
         

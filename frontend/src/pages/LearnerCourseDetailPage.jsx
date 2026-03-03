@@ -52,6 +52,7 @@ const getImageUrl = (path) => {
 const LearnerCourseDetailPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const userId = localStorage.getItem('userId');
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,17 +78,56 @@ const LearnerCourseDetailPage = () => {
     localStorage.setItem(`course_${courseId}_completed`, JSON.stringify(newCompleted));
   };
 
-  const checkEnrollmentStatus = () => {
-    const enrolled = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-    setIsEnrolled(enrolled.includes(courseId));
+  const checkEnrollmentStatus = async () => {
+    try {
+      if (!userId) {
+        setIsEnrolled(false);
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/enrollments/user/${userId}`);
+      if (!response.ok) {
+        setIsEnrolled(false);
+        return;
+      }
+
+      const enrollments = await response.json();
+      const enrolled = enrollments.some(
+        (enrollment) => (enrollment.courseId?._id || enrollment.courseId) === courseId
+      );
+      setIsEnrolled(enrolled);
+    } catch (err) {
+      console.error('Error checking enrollment:', err);
+      setIsEnrolled(false);
+    }
   };
 
   const handleUnenroll = async () => {
     try {
+      if (!userId) {
+        navigate('/login');
+        return;
+      }
+
       setUnenrolling(true);
-      let enrolled = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-      enrolled = enrolled.filter(id => id !== courseId);
-      localStorage.setItem('enrolledCourses', JSON.stringify(enrolled));
+
+      const response = await fetch(`http://localhost:5000/api/enrollments/${courseId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unenroll');
+      }
+
+      const data = await response.json();
+      
+      setCourse(prev => ({
+        ...prev,
+        students: data.students !== undefined ? data.students : Math.max(0, (prev.students || 0) - 1)
+      }));
+
       setIsEnrolled(false);
       navigate('/learner/my-courses');
     } catch (err) {
@@ -168,7 +208,6 @@ const LearnerCourseDetailPage = () => {
 
   return (
     <div className="py-6">
-      {/* Back Button */}
       <button
         onClick={() => navigate('/learner/browse-courses')}
         className="flex items-center gap-2 px-4 py-2 text-brand-600 hover:text-brand-700 font-medium mb-6 transition-colors"
@@ -177,10 +216,8 @@ const LearnerCourseDetailPage = () => {
         Back to Courses
       </button>
 
-      {/* Course Header */}
       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden mb-8">
         <div className="flex flex-col md:flex-row">
-          {/* Course Thumbnail */}
           <div className="w-full md:w-80 bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center p-8">
             {course.thumbnail ? (
               <img 
@@ -195,9 +232,7 @@ const LearnerCourseDetailPage = () => {
             )}
           </div>
           
-          {/* Course Info */}
           <div className="flex-1 p-8">
-            {/* Category Badge */}
             {course.category && (
               <div className="inline-block mb-4">
                 <span className="px-3 py-1 bg-orange-500 text-white text-xs font-bold uppercase rounded">
@@ -212,7 +247,6 @@ const LearnerCourseDetailPage = () => {
               {course.description || 'No description available'}
             </p>
             
-            {/* Course Meta Info */}
             <div className="flex flex-wrap items-center gap-6 mb-6 text-sm text-slate-600">
               {course.instructor && (
                 <div className="flex items-center gap-2">
@@ -234,7 +268,6 @@ const LearnerCourseDetailPage = () => {
               )}
             </div>
 
-            {/* Progress Bar */}
             {isEnrolled && (
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
@@ -254,7 +287,6 @@ const LearnerCourseDetailPage = () => {
               </div>
             )}
 
-            {/* Action Button */}
             <div className="flex gap-4">
               {isEnrolled ? (
                 <>
@@ -291,7 +323,6 @@ const LearnerCourseDetailPage = () => {
         </div>
       </div>
 
-      {/* Lessons Section */}
       <div className="bg-white rounded-xl shadow-lg border border-slate-200">
         <div className="border-b border-slate-200 px-6 py-4">
           <h2 className="text-xl font-bold text-slate-900">Course Content</h2>
@@ -312,7 +343,6 @@ const LearnerCourseDetailPage = () => {
                   id={`lesson-${lesson._id}`}
                   className="bg-white border border-slate-200 rounded-lg overflow-hidden transition-colors"
                 >
-                  {/* Lesson Header */}
                   <div
                     className="px-6 py-4 cursor-pointer flex items-center justify-between hover:bg-slate-50"
                     onClick={() => toggleLesson(lesson._id)}
@@ -332,11 +362,9 @@ const LearnerCourseDetailPage = () => {
                     </div>
                   </div>
 
-                  {/* Lesson Content */}
                   {isExpanded && (
                     <div className="px-6 pb-6 bg-slate-50">
                       <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-6">
-                        {/* Notes Section */}
                         {lesson.description && (
                           <div>
                             <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
@@ -353,7 +381,6 @@ const LearnerCourseDetailPage = () => {
                           </div>
                         )}
 
-                        {/* Course Materials Section */}
                         {lesson.materials && lesson.materials.length > 0 && (
                           <div>
                             <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
@@ -388,7 +415,6 @@ const LearnerCourseDetailPage = () => {
                           </div>
                         )}
 
-                        {/* Video Section */}
                         {videoUrls.length > 0 && (
                           <div>
                             <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
@@ -418,13 +444,11 @@ const LearnerCourseDetailPage = () => {
                                             e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
                                           }}
                                         />
-                                        {/* Play Button Overlay */}
                                         <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                                           <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
                                             <Play className="w-8 h-8 text-white fill-white ml-1" />
                                           </div>
                                         </div>
-                                        {/* Video Number Badge */}
                                         <div className="absolute top-2 right-2 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded">
                                           Video {vidIndex + 1}
                                         </div>
@@ -441,7 +465,6 @@ const LearnerCourseDetailPage = () => {
                           </div>
                         )}
 
-                        {/* Completion Toggle */}
                         <div className="pt-4 border-t border-slate-200">
                           <button
                             onClick={(e) => {
@@ -461,7 +484,6 @@ const LearnerCourseDetailPage = () => {
                           </button>
                         </div>
 
-                        {/* Empty State */}
                         {!lesson.description && videoUrls.length === 0 && (!lesson.materials || lesson.materials.length === 0) && (
                           <div className="text-center py-8 text-slate-500">
                             <BookOpen className="w-12 h-12 mx-auto mb-3 text-slate-300" />

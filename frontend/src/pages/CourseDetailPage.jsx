@@ -191,7 +191,6 @@ const CourseDetailPage = () => {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <button
           onClick={() => navigate('/admin/courses')}
@@ -229,7 +228,6 @@ const CourseDetailPage = () => {
                     />
                   </div>
 
-                  {/* Image Upload Section */}
                   <div>
                     <label className="text-sm font-medium text-slate-700 block mb-2">
                       Course Image
@@ -349,7 +347,6 @@ const CourseDetailPage = () => {
               )}
             </div>
 
-            {/* Course Image and Edit Button */}
             <div className="flex-shrink-0 ml-6 flex flex-col items-center gap-3">
               {course.thumbnail ? (
                 <img 
@@ -374,7 +371,6 @@ const CourseDetailPage = () => {
             </div>
           </div>
 
-          {/* Course Info Grid */}
           {isEditingCourse ? (
             <div className="pt-6 border-t border-slate-200 space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -455,7 +451,6 @@ const CourseDetailPage = () => {
         </div>
       </div>
 
-      {/* Lesson Manager */}
       <LessonManager
         courseId={courseId}
         lessons={course.lessons || []}

@@ -14,12 +14,10 @@ const CourseReviews = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        // Fetch all courses
         const coursesResponse = await fetch('http://localhost:5000/api/admin/courses');
         if (!coursesResponse.ok) throw new Error('Failed to fetch courses');
         const allCourses = await coursesResponse.json();
 
-        // Find course by name (url-decoded)
         const decodedCourseName = decodeURIComponent(courseName);
         const foundCourse = allCourses.find(
           c => c.title.toLowerCase() === decodedCourseName.toLowerCase()
@@ -34,12 +32,10 @@ const CourseReviews = () => {
 
         setCourse(foundCourse);
 
-        // Fetch all reviews
         const reviewsResponse = await fetch('http://localhost:5000/api/admin/reviews');
         if (!reviewsResponse.ok) throw new Error('Failed to fetch reviews');
         const allReviews = await reviewsResponse.json();
 
-        // Filter reviews for this course
         const courseReviews = allReviews.filter(
           r => (r.courseId?._id || r.courseId) === foundCourse._id
         );

@@ -12,9 +12,7 @@ const LearnerDashboard = () => {
   const [userName, setUserName] = useState('Learner');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // TODO: Fetch user data from backend/localStorage
   useEffect(() => {
-    // Placeholder for fetching user data
     const storedName = localStorage.getItem('userName');
     if (storedName) {
       setUserName(storedName);
@@ -23,10 +21,8 @@ const LearnerDashboard = () => {
 
   return (
     <div className="flex h-screen bg-slate-50">
-      {/* Sidebar */}
       <Sidebar userName={userName} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      {/* Overlay for mobile */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
@@ -34,9 +30,7 @@ const LearnerDashboard = () => {
         />
       )}
       
-      {/* Main Content */}
       <div className={`flex-1 overflow-auto transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
-        {/* Menu Button */}
         <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}

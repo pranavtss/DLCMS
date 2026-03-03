@@ -14,6 +14,7 @@ const MyCourses = () => {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const userId = localStorage.getItem('userId');
 
   useEffect(() => {
     loadEnrolledCourses();
@@ -22,16 +23,18 @@ const MyCourses = () => {
   const loadEnrolledCourses = async () => {
     try {
       setLoading(true);
-      const enrolledIds = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-      if (enrolledIds.length === 0) {
+      if (!userId) {
         setEnrolledCourses([]);
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/admin/courses');
-      if (!response.ok) throw new Error('Failed to fetch courses');
-      const allCourses = await response.json();
-      const enrolled = allCourses.filter(course => enrolledIds.includes(course._id));
+      const response = await fetch(`http://localhost:5000/api/enrollments/user/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch enrollments');
+      const enrollments = await response.json();
+      const enrolled = enrollments
+        .map((enrollment) => enrollment.courseId)
+        .filter(Boolean);
+
       setEnrolledCourses(enrolled);
     } catch (err) {
       console.error('Error loading enrolled courses:', err);
@@ -49,7 +52,6 @@ const MyCourses = () => {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">My Courses</h1>
@@ -64,7 +66,6 @@ const MyCourses = () => {
         </button>
       </div>
 
-      {/* Search Bar */}
       {enrolledCourses.length > 0 && (
         <SearchBar
           value={searchQuery}

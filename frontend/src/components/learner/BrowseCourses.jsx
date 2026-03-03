@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Filter, Clock, Users, Star, Search } from 'lucide-react';
+import { BookOpen, Filter, Clock, Users, Star, Search, RefreshCw } from 'lucide-react';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -14,20 +14,51 @@ const BrowseCourses = () => {
   const [filteredCourses, setFilteredCourses] = useState([]);
     const [courseRatings, setCourseRatings] = useState({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
   const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const userId = localStorage.getItem('userId');
 
   useEffect(() => {
     fetchCourses();
-      fetchAllRatings();
+    fetchAllRatings();
     loadEnrolledCourses();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleRefresh();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  const loadEnrolledCourses = () => {
-    const enrolled = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-    setEnrolledCourses(enrolled);
+  const loadEnrolledCourses = async () => {
+    try {
+      if (!userId) {
+        setEnrolledCourses([]);
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/enrollments/user/${userId}`);
+      if (!response.ok) {
+        setEnrolledCourses([]);
+        return;
+      }
+
+      const enrollments = await response.json();
+      const enrolled = enrollments
+        .map((enrollment) => enrollment.courseId?._id || enrollment.courseId)
+        .filter(Boolean);
+
+      setEnrolledCourses(enrolled);
+    } catch (err) {
+      console.error('Error loading enrollments:', err);
+      setEnrolledCourses([]);
+    }
   };
 
   const isEnrolled = (courseId) => {
@@ -36,12 +67,38 @@ const BrowseCourses = () => {
 
   const handleEnroll = async (course) => {
     try {
-      const enrolled = JSON.parse(localStorage.getItem('enrolledCourses') || '[]');
-      if (!enrolled.includes(course._id)) {
-        enrolled.push(course._id);
-        localStorage.setItem('enrolledCourses', JSON.stringify(enrolled));
-        setEnrolledCourses(enrolled);
+      if (!userId) {
+        navigate('/login');
+        return;
       }
+
+      const response = await fetch('http://localhost:5000/api/enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, courseId: course._id }),
+      });
+
+      if (!response.ok && response.status !== 409) {
+        throw new Error('Failed to enroll');
+      }
+
+      const enrollmentData = response.status === 409 ? null : await response.json();
+
+      setEnrolledCourses((prev) => (prev.includes(course._id) ? prev : [...prev, course._id]));
+      setCourses((prev) =>
+        prev.map((item) =>
+          item._id === course._id
+            ? {
+                ...item,
+                students:
+                  enrollmentData?.students !== undefined
+                    ? enrollmentData.students
+                    : (item.students || 0) + 1,
+              }
+            : item
+        )
+      );
+
       navigate('/learner/my-courses');
     } catch (err) {
       console.error('Error enrolling:', err);
@@ -62,6 +119,19 @@ const BrowseCourses = () => {
       console.error('Error fetching courses:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        fetchCourses(),
+        fetchAllRatings(),
+        loadEnrolledCourses()
+      ]);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -136,21 +206,29 @@ const BrowseCourses = () => {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Browse Courses</h1>
           <p className="text-slate-600 mt-1">Discover and enroll in new courses</p>
         </div>
-        <div className="text-sm text-slate-500">
-          {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'} available
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh enrollment counts"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <div className="text-sm text-slate-500">
+            {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'} available
+          </div>
         </div>
       </div>
 
-      {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_220px] gap-4 items-center">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
@@ -162,7 +240,6 @@ const BrowseCourses = () => {
             />
           </div>
 
-          {/* Level Filter */}
           <div className="relative">
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
             <select
@@ -178,7 +255,6 @@ const BrowseCourses = () => {
             </select>
           </div>
 
-          {/* Sort By */}
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -192,7 +268,6 @@ const BrowseCourses = () => {
         </div>
       </div>
 
-      {/* Empty State */}
       {filteredCourses.length === 0 && !loading && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
           <div className="w-24 h-24 bg-gradient-to-br from-brand-100 to-brand-200 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -209,7 +284,6 @@ const BrowseCourses = () => {
         </div>
       )}
 
-      {/* Loading State */}
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -226,7 +300,6 @@ const BrowseCourses = () => {
         </div>
       )}
 
-      {/* Course Grid */}
       {filteredCourses.length > 0 && !loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => (
@@ -235,7 +308,6 @@ const BrowseCourses = () => {
               onClick={() => navigate(`/learner/courses/${course._id}`)}
               className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-brand-300 transition-all duration-300 cursor-pointer"
             >
-              {/* Course Image */}
               <div className="relative h-48 bg-gradient-to-br from-brand-500 to-brand-700 overflow-hidden">
                 <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity"></div>
                 {course.thumbnail ? (
@@ -245,7 +317,6 @@ const BrowseCourses = () => {
                     <BookOpen className="w-16 h-16 text-white opacity-50" />
                   </div>
                 )}
-                {/* Level Badge */}
                 {course.level && (
                   <div className="absolute top-4 right-4">
                     <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-xs font-semibold text-slate-700 rounded-full">
@@ -255,9 +326,7 @@ const BrowseCourses = () => {
                 )}
               </div>
 
-              {/* Course Content */}
               <div className="p-6">
-                {/* Category */}
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs font-semibold px-3 py-1 bg-brand-100 text-brand-700 rounded-full">
                     {course.category || 'General'}
@@ -269,17 +338,14 @@ const BrowseCourses = () => {
                   )}
                 </div>
 
-                {/* Title */}
                 <h3 className="font-bold text-lg text-slate-900 mb-2 line-clamp-2 group-hover:text-brand-600 transition-colors">
                   {course.title}
                 </h3>
 
-                {/* Description */}
                 <p className="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
                   {course.description}
                 </p>
 
-                {/* Instructor */}
                 {course.instructor && (
                   <div className="flex items-center gap-2 mb-4 text-sm text-slate-600">
                     <div className="w-6 h-6 bg-brand-100 rounded-full flex items-center justify-center">
@@ -291,7 +357,6 @@ const BrowseCourses = () => {
                   </div>
                 )}
 
-                {/* Stats */}
                 <div className="flex items-center gap-4 mb-4 pb-4 border-b border-slate-200">
                   {(() => {
                     const { average, count } = getCourseRating(course._id);
@@ -308,20 +373,17 @@ const BrowseCourses = () => {
                     ) : null;
                   })()}
 
-                  {/* Students */}
                   <div className="flex items-center gap-1 text-slate-600">
                     <Users className="w-4 h-4" />
                     <span className="text-sm">{course.students || '0'}</span>
                   </div>
 
-                  {/* Duration */}
                   <div className="flex items-center gap-1 text-slate-600">
                     <Clock className="w-4 h-4" />
                     <span className="text-sm">{course.duration ? `${course.duration}${!isNaN(course.duration) ? ' weeks' : ''}` : 'N/A'}</span>
                   </div>
                 </div>
 
-                {/* Enroll Button */}
                 <div className="flex justify-end">
                   {isEnrolled(course._id) ? (
                     <button

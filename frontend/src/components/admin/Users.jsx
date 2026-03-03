@@ -24,7 +24,6 @@ const Users = () => {
       const data = await response.json();
       setUsers(data);
       
-      // Calculate stats
       const stats = {
         total: data.length,
         learners: data.filter(u => u.role === 'Learner').length,
@@ -79,13 +78,11 @@ const Users = () => {
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-slate-900">Users</h1>
         <p className="text-slate-600 mt-1">Manage learners and administrators</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between">
@@ -124,7 +121,6 @@ const Users = () => {
         </div>
       </div>
 
-      {/* Search and Filter */}
       <div className="mb-8 space-y-4">
         <SearchBar
           value={searchQuery}
@@ -153,14 +149,12 @@ const Users = () => {
         </div>
       </div>
 
-      {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-12">
           <div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
 
-      {/* Users Table */}
       {!loading && filteredUsers.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
           <UsersIcon className="w-12 h-12 text-slate-300 mx-auto mb-4" />
@@ -227,7 +221,6 @@ const Users = () => {
         </div>
       )}
 
-      {/* User Details Modal */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full">

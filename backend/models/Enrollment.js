@@ -14,7 +14,6 @@ const enrollmentSchema = new mongoose.Schema(
   { timestamps: true, collection: 'enrollments' }
 )
 
-// Index for fast queries
 enrollmentSchema.index({ userId: 1, courseId: 1 })
 enrollmentSchema.index({ userId: 1, status: 1 })
 enrollmentSchema.index({ courseId: 1, status: 1 })

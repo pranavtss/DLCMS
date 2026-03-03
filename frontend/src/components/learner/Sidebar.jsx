@@ -7,7 +7,6 @@ const Sidebar = ({ userName = "User", isOpen = true, onClose }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleSignOut = () => {
-    // Clear any stored user data
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     navigate('/login');
@@ -20,7 +19,6 @@ const Sidebar = ({ userName = "User", isOpen = true, onClose }) => {
     { icon: Star, label: 'Reviews', path: '/learner/reviews' },
   ];
 
-  // Get user initials
   const getInitials = (name) => {
     return name
       .split(' ')
@@ -34,7 +32,6 @@ const Sidebar = ({ userName = "User", isOpen = true, onClose }) => {
     <div className={`w-64 bg-[#0f172a] text-white flex flex-col h-screen fixed left-0 top-0 z-40 transition-transform duration-300 ${
       isOpen ? 'translate-x-0' : '-translate-x-full'
     }`}>
-      {/* Logo */}
       <div className="p-6 border-b border-slate-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -43,7 +40,6 @@ const Sidebar = ({ userName = "User", isOpen = true, onClose }) => {
             </div>
             <span className="text-xl font-semibold">DLCMS</span>
           </div>
-          {/* Close button for mobile */}
           <button
             onClick={onClose}
             className="lg:hidden p-1 hover:bg-slate-700 rounded transition-colors"
@@ -54,7 +50,6 @@ const Sidebar = ({ userName = "User", isOpen = true, onClose }) => {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -77,7 +72,6 @@ const Sidebar = ({ userName = "User", isOpen = true, onClose }) => {
         })}
       </nav>
 
-      {/* User Profile */}
       <div className="p-4 border-t border-slate-700">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center font-semibold">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Users, Star, TrendingUp, Clock, AlertCircle } from 'lucide-react';
+import { BookOpen, Users, Star, TrendingUp, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [recentReviews, setRecentReviews] = useState([]);
   const [topCourses, setTopCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -23,7 +24,6 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
-      // Fetch all data in parallel
       const [coursesRes, usersRes, enrollmentsRes, reviewsRes] = await Promise.all([
         fetch('http://localhost:5000/api/admin/courses'),
         fetch('http://localhost:5000/api/admin/users'),
@@ -41,7 +41,6 @@ const Dashboard = () => {
       if (enrollmentsRes.ok) enrollmentsData = await enrollmentsRes.json();
       if (reviewsRes.ok) reviewsData = await reviewsRes.json();
 
-      // Calculate statistics
       const learnerCount = usersData.filter(u => u.role === 'Learner').length;
       const adminCount = usersData.filter(u => u.role === 'Admin').length;
       const avgRating = reviewsData.length > 0
@@ -58,13 +57,11 @@ const Dashboard = () => {
         averageRating: avgRating
       });
 
-      // Get recent reviews (last 5)
       const recent = reviewsData
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 5);
       setRecentReviews(recent);
 
-      // Get top courses by enrollment count
       const courseEnrollmentMap = {};
       enrollmentsData.forEach(enrollment => {
         const courseId = enrollment.courseId?._id || enrollment.courseId;
@@ -107,6 +104,29 @@ const Dashboard = () => {
     );
   };
 
+  const handleSyncEnrollmentCounts = async () => {
+    try {
+      setSyncing(true);
+      const response = await fetch('http://localhost:5000/api/admin/sync-enrollment-counts', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync enrollment counts');
+      }
+
+      const result = await response.json();
+      alert(`✅ ${result.message}\n\nCourses updated: ${result.coursesUpdated}/${result.totalCourses}`);
+      
+      await loadDashboardData();
+    } catch (err) {
+      console.error('Error syncing enrollment counts:', err);
+      alert('❌ Failed to sync enrollment counts: ' + err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -117,15 +137,22 @@ const Dashboard = () => {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-slate-900">Dashboard</h1>
-        <p className="text-slate-600 mt-1">Overview of your learning management system</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-slate-900">Dashboard</h1>
+          <p className="text-slate-600 mt-1">Overview of your learning management system</p>
+        </div>
+        <button
+          onClick={handleSyncEnrollmentCounts}
+          disabled={syncing}
+          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Syncing...' : 'Sync Enrollment Counts'}
+        </button>
       </div>
 
-      {/* Key Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Courses */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -138,7 +165,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Total Users */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -152,7 +178,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Total Enrollments */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -165,7 +190,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Reviews & Ratings */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -180,9 +204,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Recent Reviews */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Recent Reviews</h2>
           
@@ -222,7 +244,6 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Top Courses */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Top Courses by Enrollment</h2>
           
@@ -257,7 +278,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* System Health Info */}
       <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl shadow-sm border border-teal-200 p-6">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">

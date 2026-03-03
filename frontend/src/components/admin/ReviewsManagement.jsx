@@ -180,7 +180,6 @@ const ReviewsManagement = () => {
                     onClick={() => navigate(`/admin/reviews/${encodeURIComponent(course.title)}`)}
                     className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden text-left hover:shadow-lg hover:border-teal-300 transition-all"
                   >
-                    {/* Course Image */}
                     <div className="relative h-48 bg-gradient-to-br from-teal-500 to-teal-700 overflow-hidden">
                       {course.thumbnail ? (
                         <img 
@@ -195,7 +194,6 @@ const ReviewsManagement = () => {
                       )}
                     </div>
 
-                    {/* Course Info */}
                     <div className="p-6">
                       <h3 className="text-lg font-semibold text-slate-900 mb-3 line-clamp-2 group-hover:text-teal-600 transition-colors">
                         {course.title}

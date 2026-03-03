@@ -2,7 +2,6 @@ const mongoose = require("mongoose")
 
 console.log("🔧 Loading User model...")
 
-// Check if model already exists and delete it
 if (mongoose.models.User) {
   console.log("⚠️  User model already exists in cache, deleting...")
   delete mongoose.models.User
