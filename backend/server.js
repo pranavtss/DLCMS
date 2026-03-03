@@ -1,10 +1,13 @@
 const express = require("express")
+require("dotenv").config()
 const cors = require("cors")
 const mongoose = require("mongoose")
 const bcrypt = require("bcrypt")
+const crypto = require("crypto")
 const path = require("path")
 const fs = require("fs")
 const multer = require("multer")
+const { OAuth2Client } = require("google-auth-library")
 const User = require("./models/User")
 const Course = require("./models/Course")
 const Review = require("./models/Review")
@@ -42,6 +45,8 @@ const upload = multer({
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dlcms"
 const ADMIN_EMAIL = "admin@dlcms"
 const ADMIN_PASSWORD = "admin"
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ""
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null
 
 const ensureAdminAccount = async () => {
   try {
@@ -184,6 +189,65 @@ app.post("/api/auth/register", async (req, res) => {
       console.error('❌ Validation errors:', error.errors)
     }
     return res.status(500).json({ message: "Registration failed.", error: error.message })
+  }
+})
+
+app.post("/api/auth/google", async (req, res) => {
+  try {
+    const { credential } = req.body
+
+    if (!credential) {
+      return res.status(400).json({ message: "Google credential is required." })
+    }
+
+    if (!googleClient) {
+      return res.status(500).json({
+        message: "Google sign-in is not configured on server. Add GOOGLE_CLIENT_ID in backend environment.",
+      })
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    })
+    const payload = ticket.getPayload()
+
+    if (!payload || !payload.email_verified || !payload.email) {
+      return res.status(401).json({ message: "Invalid Google account." })
+    }
+
+    const email = payload.email.toLowerCase()
+    const name = payload.name || email.split("@")[0]
+
+    if (email === ADMIN_EMAIL) {
+      return res.status(403).json({ message: "Google login is not allowed for admin account." })
+    }
+
+    let user = await User.findOne({ email })
+
+    if (!user) {
+      const tempPassword = crypto.randomBytes(24).toString("hex")
+      const hashed = await bcrypt.hash(tempPassword, 10)
+      user = await User.create({
+        name,
+        email,
+        password: hashed,
+        role: "Learner",
+      })
+    }
+
+    if (user.role === "Admin") {
+      return res.status(403).json({ message: "Unauthorized admin login." })
+    }
+
+    return res.json({
+      message: "Login successful",
+      userId: user._id,
+      role: user.role,
+      name: user.name,
+    })
+  } catch (error) {
+    return res.status(401).json({ message: "Google login failed.", error: error.message })
   }
 })
 
