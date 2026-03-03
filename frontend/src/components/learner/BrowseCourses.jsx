@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Filter, Clock, Users, Star } from 'lucide-react';
-import SearchBar from '../common/SearchBar';
+import { BookOpen, Filter, Clock, Users, Star, Search } from 'lucide-react';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -150,24 +149,26 @@ const BrowseCourses = () => {
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_220px] gap-4 items-center">
           {/* Search */}
-          <div className="flex-1">
-            <SearchBar
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search courses by title, instructor, or keyword..."
-              containerClassName="bg-transparent border-0 p-0 shadow-none"
+              className="w-full h-12 pl-12 pr-4 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
             />
           </div>
 
           {/* Level Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-slate-400" />
+          <div className="relative">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
             <select
               value={selectedLevel}
               onChange={(e) => setSelectedLevel(e.target.value)}
-              className="px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
+              className="w-full h-12 pl-12 pr-4 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
             >
               {levels.map((level) => (
                 <option key={level} value={level.toLowerCase().replace(' ', '-')}>
@@ -181,7 +182,7 @@ const BrowseCourses = () => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
+            className="w-full h-12 px-4 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
           >
             <option value="popular">Most Popular</option>
             <option value="newest">Newest First</option>
