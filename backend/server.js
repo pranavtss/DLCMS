@@ -675,7 +675,10 @@ app.get("/api/reviews/course/:courseId", async (req, res) => {
 app.get("/api/reviews/user/:userId", async (req, res) => {
   try {
     const { userId } = req.params
-    const reviews = await Review.find({ userId }).populate('courseId', 'title thumbnail').sort({ createdAt: -1 })
+    const reviews = await Review.find({ userId })
+      .populate('courseId', 'title thumbnail description')
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 })
     res.json(reviews)
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch user reviews", error: error.message })

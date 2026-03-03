@@ -14,8 +14,23 @@ const Reviews = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadCompletedCourses();
-    loadMyReviews();
+    const loadData = async () => {
+      await loadCompletedCourses();
+      await loadMyReviews();
+    };
+    loadData();
+  }, []);
+
+  // Reload reviews when page becomes visible (e.g., after browser tab switch)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadMyReviews();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const loadCompletedCourses = async () => {
@@ -51,14 +66,26 @@ const Reviews = () => {
   const loadMyReviews = async () => {
     try {
       const userId = localStorage.getItem('userId');
-      if (!userId) return;
+      if (!userId) {
+        console.warn('⚠️  userId not found in localStorage');
+        setMyReviews([]);
+        return;
+      }
 
+      console.log('📥 Fetching reviews for userId:', userId);
       const response = await fetch(`http://localhost:5000/api/reviews/user/${userId}`);
-      if (!response.ok) throw new Error('Failed to fetch reviews');
+      
+      if (!response.ok) {
+        console.error('❌ Failed to fetch reviews. Status:', response.status);
+        throw new Error('Failed to fetch reviews');
+      }
+      
       const reviews = await response.json();
+      console.log('✅ Reviews loaded:', reviews);
       setMyReviews(reviews);
     } catch (err) {
       console.error('Error loading reviews:', err);
+      setMyReviews([]);
     }
   };
 
@@ -96,7 +123,13 @@ const Reviews = () => {
         throw new Error(error.message || 'Failed to submit review');
       }
 
+      const result = await response.json();
+      console.log('✅ Review submitted successfully:', result);
+      
+      // Wait a moment for backend to process, then reload reviews
+      await new Promise(resolve => setTimeout(resolve, 300));
       await loadMyReviews();
+      
       setNewReview({ rating: 0, comment: '' });
       setIsWritingReview(false);
       setSelectedCourse(null);
@@ -369,6 +402,12 @@ const Reviews = () => {
                 <p className="text-sm text-slate-500 mb-3">
                   Reviewed on {formatDate(review.createdAt)}
                 </p>
+
+                {review.comment && (
+                  <div className="bg-slate-50 rounded-lg p-3 mb-3">
+                    <p className="text-sm text-slate-700">{review.comment}</p>
+                  </div>
+                )}
 
                 <div className="pt-3 border-t border-slate-200 flex gap-2">
                   <button

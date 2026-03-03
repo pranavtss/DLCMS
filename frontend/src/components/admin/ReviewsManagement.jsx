@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Star, MessageSquare, User, Calendar, Trash2, ArrowLeft, BookOpen, X } from 'lucide-react';
 import SearchBar from '../common/SearchBar';
 
@@ -9,6 +10,7 @@ const getImageUrl = (path) => {
 };
 
 const ReviewsManagement = () => {
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -175,10 +177,7 @@ const ReviewsManagement = () => {
                   <button
                     key={course._id}
                     type="button"
-                    onClick={() => {
-                      setFilter('all');
-                      setSelectedCourseId(course._id);
-                    }}
+                    onClick={() => navigate(`/admin/reviews/${encodeURIComponent(course.title)}`)}
                     className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden text-left hover:shadow-lg hover:border-teal-300 transition-all"
                   >
                     {/* Course Image */}
