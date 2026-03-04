@@ -40,6 +40,7 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
     title: '',
     videoUrlsInput: '',
     description: '',
+    materials: [],
   });
   const [newMaterial, setNewMaterial] = useState({
     name: '',
@@ -91,6 +92,23 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
     return 'other';
   };
 
+  const handleAddMaterialToNewLesson = () => {
+    if (!newMaterial.name.trim() || !newMaterial.url.trim()) return;
+
+    setNewLesson((prev) => ({
+      ...prev,
+      materials: [...prev.materials, { ...newMaterial }],
+    }));
+    setNewMaterial({ name: '', url: '', type: 'pdf' });
+  };
+
+  const handleRemoveMaterialFromNewLesson = (index) => {
+    setNewLesson((prev) => ({
+      ...prev,
+      materials: prev.materials.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleAddLesson = async (e) => {
     e.preventDefault();
     if (!newLesson.title.trim()) return;
@@ -103,6 +121,7 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
         title: newLesson.title,
         description: newLesson.description,
         videoUrls: normalizeVideoUrls(newLesson.videoUrlsInput),
+        materials: newLesson.materials,
       };
 
       const response = await fetch(
@@ -120,7 +139,8 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
 
       const data = await response.json();
       onLessonAdded();
-      setNewLesson({ title: '', videoUrlsInput: '', description: '' });
+      setNewLesson({ title: '', videoUrlsInput: '', description: '', materials: [] });
+      setNewMaterial({ name: '', url: '', type: 'pdf' });
       setShowLessonForm(false);
     } catch (err) {
       setError(err.message);
@@ -418,12 +438,70 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
             />
           </div>
 
+          <div className="bg-white p-3 rounded border border-slate-200 space-y-2">
+            <label className="text-sm font-medium text-slate-700">Materials (Optional)</label>
+            <input
+              type="text"
+              value={newMaterial.name}
+              onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
+              placeholder="Material name (e.g., Slides, Code)"
+              className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <input
+              type="url"
+              value={newMaterial.url}
+              onChange={(e) => setNewMaterial({ ...newMaterial, url: e.target.value })}
+              placeholder="Material URL"
+              className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <select
+              value={newMaterial.type}
+              onChange={(e) => setNewMaterial({ ...newMaterial, type: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              <option value="pdf">PDF</option>
+              <option value="doc">Document</option>
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+              <option value="other">Other</option>
+            </select>
+            <button
+              type="button"
+              onClick={handleAddMaterialToNewLesson}
+              disabled={!newMaterial.name || !newMaterial.url}
+              className="w-full px-3 py-1 bg-brand-500 text-white text-sm rounded hover:bg-brand-600 disabled:opacity-50 transition-colors"
+            >
+              Add Material
+            </button>
+
+            {newLesson.materials.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {newLesson.materials.map((mat, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-brand-50 p-2 rounded text-sm">
+                    <div>
+                      <p className="font-medium text-slate-900">{mat.name}</p>
+                      <p className="text-slate-500 text-xs">{mat.type}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMaterialFromNewLesson(idx)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => {
                 setShowLessonForm(false);
-                setNewLesson({ title: '', videoUrlsInput: '', description: '' });
+                setNewLesson({ title: '', videoUrlsInput: '', description: '', materials: [] });
+                setNewMaterial({ name: '', url: '', type: 'pdf' });
               }}
               className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 text-sm font-medium transition-colors"
             >
