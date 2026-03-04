@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, MessageSquare, User, Calendar, Trash2, ArrowLeft, BookOpen, X } from 'lucide-react';
 import SearchBar from '../common/SearchBar';
+import { apiFetch } from '../../utils/api';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -26,7 +27,7 @@ const ReviewsManagement = () => {
   const loadReviews = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/admin/reviews');
+      const response = await apiFetch('/api/admin/reviews');
       if (!response.ok) throw new Error('Failed to fetch reviews');
       const data = await response.json();
       setReviews(data);
@@ -39,7 +40,7 @@ const ReviewsManagement = () => {
 
   const loadCourses = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/courses');
+      const response = await apiFetch('/api/admin/courses');
       if (!response.ok) throw new Error('Failed to fetch courses');
       const data = await response.json();
       setCourses(data);
@@ -52,7 +53,7 @@ const ReviewsManagement = () => {
     if (!confirm('Are you sure you want to delete this review?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/reviews/${reviewId}`, {
+      const response = await apiFetch(`/api/reviews/${reviewId}`, {
         method: 'DELETE',
       });
 

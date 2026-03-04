@@ -1,5 +1,6 @@
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
+import { apiFetch } from '../../utils/api';
 
 const CourseForm = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -40,9 +41,11 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
       
       console.log('Uploading course image:', imageFile.name, imageFile.size);
       
-      const response = await fetch('http://localhost:5000/api/uploads', {
+      const response = await apiFetch('/api/uploads', {
         method: 'POST',
         body: formDataUpload,
+        _skipHeaders: true, // Don't set Content-Type, let browser set it for multipart
+        _noAutoLogout: true // Don't auto-logout on 403
       });
       
       const data = await response.json();

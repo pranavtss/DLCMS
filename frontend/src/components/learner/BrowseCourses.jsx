@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Filter, Clock, Users, Star, Search, RefreshCw } from 'lucide-react';
+import { BookOpen, Filter, Clock, Users, Star, Search } from 'lucide-react';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -14,7 +14,6 @@ const BrowseCourses = () => {
   const [filteredCourses, setFilteredCourses] = useState([]);
     const [courseRatings, setCourseRatings] = useState({});
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
@@ -123,16 +122,11 @@ const BrowseCourses = () => {
   };
 
   const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      await Promise.all([
-        fetchCourses(),
-        fetchAllRatings(),
-        loadEnrolledCourses()
-      ]);
-    } finally {
-      setRefreshing(false);
-    }
+    await Promise.all([
+      fetchCourses(),
+      fetchAllRatings(),
+      loadEnrolledCourses()
+    ]);
   };
 
   useEffect(() => {
@@ -211,19 +205,8 @@ const BrowseCourses = () => {
           <h1 className="text-3xl font-semibold text-slate-900">Browse Courses</h1>
           <p className="text-slate-600 mt-1">Discover and enroll in new courses</p>
         </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Refresh enrollment counts"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
-          <div className="text-sm text-slate-500">
-            {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'} available
-          </div>
+        <div className="text-sm text-slate-500">
+          {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'} available
         </div>
       </div>
 

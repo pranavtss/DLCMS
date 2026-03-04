@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MessageSquare, User, Calendar, Trash2, ArrowLeft } from 'lucide-react';
+import { apiFetch } from '../../utils/api';
 
 const CourseReviews = () => {
   const { courseName } = useParams();
@@ -14,7 +15,7 @@ const CourseReviews = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const coursesResponse = await fetch('http://localhost:5000/api/admin/courses');
+        const coursesResponse = await apiFetch('/api/admin/courses');
         if (!coursesResponse.ok) throw new Error('Failed to fetch courses');
         const allCourses = await coursesResponse.json();
 
@@ -32,7 +33,7 @@ const CourseReviews = () => {
 
         setCourse(foundCourse);
 
-        const reviewsResponse = await fetch('http://localhost:5000/api/admin/reviews');
+        const reviewsResponse = await apiFetch('/api/admin/reviews');
         if (!reviewsResponse.ok) throw new Error('Failed to fetch reviews');
         const allReviews = await reviewsResponse.json();
 
@@ -55,7 +56,7 @@ const CourseReviews = () => {
     if (!confirm('Are you sure you want to delete this review?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/reviews/${reviewId}`, {
+      const response = await apiFetch(`/api/reviews/${reviewId}`, {
         method: 'DELETE',
       });
 

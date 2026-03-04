@@ -7,10 +7,10 @@ const API_BASE_URL = "http://localhost:5000"
 /**
  * Get authorization headers with JWT token
  */
-export const getAuthHeaders = () => {
+export const getAuthHeaders = (skipContentType = false) => {
   const token = localStorage.getItem("authToken")
   return {
-    "Content-Type": "application/json",
+    ...(skipContentType ? {} : { "Content-Type": "application/json" }),
     ...(token && { "Authorization": `Bearer ${token}` }),
   }
 }
@@ -20,19 +20,22 @@ export const getAuthHeaders = () => {
  */
 export const apiFetch = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`
+  const { _skipHeaders, _noAutoLogout, ...fetchOptions } = options
+  
+  // For multipart/form-data, let browser set the Content-Type header
   const headers = {
-    ...getAuthHeaders(),
-    ...options.headers,
+    ...getAuthHeaders(_skipHeaders),
+    ...fetchOptions.headers,
   }
 
   try {
     const response = await fetch(url, {
-      ...options,
+      ...fetchOptions,
       headers,
     })
 
-    // Handle unauthorized (token expired/invalid)
-    if (response.status === 401 || response.status === 403) {
+    // Handle unauthorized (token expired/invalid) - but only for protected endpoints
+    if ((response.status === 401 || response.status === 403) && !_noAutoLogout) {
       console.warn("Authentication failed. Please login again.")
       localStorage.removeItem("authToken")
       localStorage.removeItem("userId")

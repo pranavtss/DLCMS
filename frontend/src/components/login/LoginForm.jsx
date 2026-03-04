@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"
+
 const LoginForm = () => {
   const navigate = useNavigate()
   const googleButtonRef = useRef(null)
@@ -14,7 +16,7 @@ const LoginForm = () => {
 
   const handleGoogleLogin = async (response) => {
     try {
-      const apiResponse = await fetch("http://localhost:5000/api/auth/google", {
+      const apiResponse = await fetch(`${API_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credential: response.credential }),
@@ -35,7 +37,7 @@ const LoginForm = () => {
       const target = data.role === "Admin" ? "/admin" : "/learner"
       navigate(target)
     } catch (error) {
-      setMessage("Google login failed. Please try again.")
+      setMessage("Google login failed. Please check your internet and backend server.")
     }
   }
 
@@ -49,6 +51,9 @@ const LoginForm = () => {
     script.src = "https://accounts.google.com/gsi/client"
     script.async = true
     script.defer = true
+    script.onerror = () => {
+      setMessage("Google Sign-In failed to load. Please check your internet connection.")
+    }
     script.onload = () => {
       if (!window.google || !googleButtonRef.current) return
 
@@ -89,10 +94,10 @@ const LoginForm = () => {
       return
     }
     try {
-      console.log('📧 Sending login request to: http://localhost:5000/api/auth/login')
+      console.log(`📧 Sending login request to: ${API_URL}/api/auth/login`)
       console.log('📝 Credentials:', { email: formState.email.toLowerCase(), password: '***' })
       
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: formState.email.toLowerCase(), password: formState.password }),
@@ -112,13 +117,14 @@ const LoginForm = () => {
       localStorage.setItem('userId', data.userId || data.id || '')
       localStorage.setItem('userName', data.name || 'User')
       localStorage.setItem('userRole', data.role)
+      localStorage.setItem('authToken', data.token || '')
       
       console.log('✅ Redirecting to:', data.role === "Admin" ? "/admin" : "/learner")
       const target = data.role === "Admin" ? "/admin" : "/learner"
       navigate(target)
     } catch (error) {
       console.error('❌ Fetch error:', error)
-      setMessage("Login failed. Please try again. Check console for details.")
+      setMessage(`Login failed. Cannot reach server at ${API_URL}. Make sure backend is running.`)
     }
   }
 

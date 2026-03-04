@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Download, Play, Edit2, Save, X } from 'lucide-react';
+import { apiFetch } from '../../utils/api';
 
 const getYouTubeVideoId = (url) => {
   if (!url) return null;
@@ -124,11 +125,10 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
         materials: newLesson.materials,
       };
 
-      const response = await fetch(
-        `http://localhost:5000/api/courses/${courseId}/lessons`,
+      const response = await apiFetch(
+        `/api/courses/${courseId}/lessons`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         }
       );
@@ -153,8 +153,8 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
     if (!window.confirm('Delete this lesson?')) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}`,
+      const response = await apiFetch(
+        `/api/courses/${courseId}/lessons/${lessonId}`,
         { method: 'DELETE' }
       );
 
@@ -175,11 +175,10 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
     setError('');
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}/materials`,
+      const response = await apiFetch(
+        `/api/courses/${courseId}/lessons/${lessonId}/materials`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newMaterial),
         }
       );
@@ -223,9 +222,11 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
         type: selectedFile.type,
       });
       
-      const response = await fetch('http://localhost:5000/api/uploads', {
+      const response = await apiFetch('/api/uploads', {
         method: 'POST',
         body: formData,
+        _skipHeaders: true, // Don't set Content-Type, let browser set it for multipart
+        _noAutoLogout: true // Don't auto-logout on 403
       });
 
       const data = await response.json();
@@ -258,8 +259,8 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
     if (!window.confirm('Delete this material?')) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}/materials/${materialId}`,
+      const response = await apiFetch(
+        `/api/courses/${courseId}/lessons/${lessonId}/materials/${materialId}`,
         { method: 'DELETE' }
       );
 
@@ -303,11 +304,10 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
         videoUrls: normalizeVideoUrls(editingLessonData.videoUrlsInput),
       };
 
-      const response = await fetch(
-        `http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}`,
+      const response = await apiFetch(
+        `/api/courses/${courseId}/lessons/${lessonId}`,
         {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         }
       );
@@ -358,9 +358,8 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
         data: editingMaterialData
       });
 
-      const response = await fetch(url, {
+      const response = await apiFetch(`/api/courses/${courseId}/lessons/${lessonId}/materials/${materialId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editingMaterialData),
       });
 

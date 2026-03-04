@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users as UsersIcon, UserCheck, UserX, Mail, Calendar, Trash2, Eye } from 'lucide-react';
 import SearchBar from '../common/SearchBar';
+import { apiFetch } from '../../utils/api';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -17,7 +18,7 @@ const Users = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/admin/users');
+      const response = await apiFetch('/api/admin/users');
       
       if (!response.ok) throw new Error('Failed to fetch users');
       
@@ -43,7 +44,7 @@ const Users = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+      const response = await apiFetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
       });
 
