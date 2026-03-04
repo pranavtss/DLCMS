@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Trash2, Edit2, Users } from 'lucide-react';
 import CourseForm from './CourseForm';
 import SearchBar from '../common/SearchBar';
+import { apiFetch } from '../../utils/api';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -25,7 +26,7 @@ const Courses = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/admin/courses');
+      const response = await apiFetch('/api/admin/courses');
       const data = await response.json();
       
       if (Array.isArray(data)) {
@@ -45,9 +46,8 @@ const Courses = () => {
     try {
       const userId = localStorage.getItem('userId');
       
-      const response = await fetch('http://localhost:5000/api/courses', {
+      const response = await apiFetch('/api/courses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
@@ -81,7 +81,7 @@ const Courses = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}`, {
+      const response = await apiFetch(`/api/courses/${courseId}`, {
         method: 'DELETE',
       });
 

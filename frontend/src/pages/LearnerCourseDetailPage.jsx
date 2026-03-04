@@ -65,6 +65,7 @@ const LearnerCourseDetailPage = () => {
     fetchCourseDetails();
     checkEnrollmentStatus();
     loadCompletionStatus();
+    syncCompletionPercentage();
   }, [courseId]);
 
   const loadCompletionStatus = () => {
@@ -72,10 +73,47 @@ const LearnerCourseDetailPage = () => {
     setCompletedLessons(completed);
   };
 
-  const toggleLessonCompletion = (lessonId) => {
+  const syncCompletionPercentage = async () => {
+    try {
+      if (!userId) return;
+
+      const completed = JSON.parse(localStorage.getItem(`course_${courseId}_completed`) || '{}');
+      
+      for (const [lessonId, isCompleted] of Object.entries(completed)) {
+        if (isCompleted) {
+          await fetch('http://localhost:5000/api/enrollments/progress', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, courseId, lessonId, completed: true })
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing completion:', err);
+    }
+  };
+
+  const toggleLessonCompletion = async (lessonId) => {
     const newCompleted = { ...completedLessons, [lessonId]: !completedLessons[lessonId] };
     setCompletedLessons(newCompleted);
     localStorage.setItem(`course_${courseId}_completed`, JSON.stringify(newCompleted));
+
+    try {
+      if (!userId) return;
+
+      await fetch('http://localhost:5000/api/enrollments/progress', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          courseId,
+          lessonId,
+          completed: newCompleted[lessonId]
+        })
+      });
+    } catch (err) {
+      console.error('Error updating completion:', err);
+    }
   };
 
   const checkEnrollmentStatus = async () => {

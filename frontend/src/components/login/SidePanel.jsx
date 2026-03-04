@@ -10,8 +10,7 @@ const SidePanel = () => (
     </div>
 
     <div className="mt-8 overflow-hidden rounded-2xl bg-teal-700 p-6 shadow-lg">
-      <div className="flex items-center justify-center"
-      >
+      <div className="flex items-center justify-center">
         <img
           src="/images/learning-illustration.png"
           alt="Learning together"
@@ -28,18 +27,8 @@ const SidePanel = () => (
         </div>
       </div>
     </div>
-    <div className="mt-6 flex items-center gap-3 text-xs text-slate-600">
-      <div className="flex -space-x-2">
-        {["A", "B", "C"].map((letter) => (
-          <div
-            key={letter}
-            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-teal-600 text-[10px] font-semibold text-white"
-          >
-            {letter}
-          </div>
-        ))}
-      </div>
-      Joined by 10,000+ learners today
+    <div className="mt-6 text-xs text-slate-600">
+      Start your journey to success today
     </div>
   </div>
 )

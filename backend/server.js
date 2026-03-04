@@ -1,6 +1,9 @@
 const express = require("express")
 require("dotenv").config()
 const cors = require("cors")
+const helmet = require("helmet")
+const morgan = require("morgan")
+const jwt = require("jsonwebtoken")
 const mongoose = require("mongoose")
 const bcrypt = require("bcrypt")
 const crypto = require("crypto")
@@ -15,6 +18,8 @@ const Enrollment = require("./models/Enrollment")
 
 const app = express()
 
+app.use(helmet())
+app.use(morgan("combined"))
 app.use(cors())
 app.use(express.json())
 const uploadsDir = path.join(__dirname, "uploads")
@@ -47,7 +52,46 @@ const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dlcms"
 const ADMIN_EMAIL = "admin@dlcms"
 const ADMIN_PASSWORD = "admin"
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ""
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production"
+const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d"
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null
+
+// JWT Token Generation
+const generateToken = (userId, email, role) => {
+  return jwt.sign(
+    { userId, email, role },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRE }
+  )
+}
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"]
+  const token = authHeader && authHeader.split(" ")[1] // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ message: "Access token required" })
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      console.error("❌ Token verification failed:", err.message)
+      return res.status(403).json({ message: "Invalid or expired token" })
+    }
+    req.user = user
+    next()
+  })
+}
+
+// Admin Authorization Middleware
+const authorizeAdmin = (req, res, next) => {
+  if (req.user.role !== "Admin") {
+    console.error(`❌ Unauthorized access attempt by non-admin: ${req.user.email}`)
+    return res.status(403).json({ message: "Admin access required" })
+  }
+  next()
+}
 
 const ensureAdminAccount = async () => {
   try {
@@ -122,7 +166,14 @@ app.post("/api/auth/login", (req, res) => {
         return res.status(401).json({ message: "Invalid credentials." })
       }
       console.log(`✅ Login successful for ${email.toLowerCase()}`)
-      return res.json({ message: "Login successful", userId: user._id, role: user.role, name: user.name })
+      const token = generateToken(user._id, user.email, user.role)
+      return res.json({ 
+        message: "Login successful", 
+        userId: user._id, 
+        role: user.role, 
+        name: user.name,
+        token: token 
+      })
     })
     .catch((error) => {
       console.error("❌ Login error:", error.message)
@@ -240,11 +291,13 @@ app.post("/api/auth/google", async (req, res) => {
       return res.status(403).json({ message: "Unauthorized admin login." })
     }
 
+    const token = generateToken(user._id, user.email, user.role)
     return res.json({
       message: "Login successful",
       userId: user._id,
       role: user.role,
       name: user.name,
+      token: token,
     })
   } catch (error) {
     return res.status(401).json({ message: "Google login failed.", error: error.message })
@@ -290,7 +343,7 @@ app.get("/api/courses", async (req, res) => {
   }
 })
 
-app.get("/api/admin/users", async (req, res) => {
+app.get("/api/admin/users", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const users = await User.find().select('-password').sort({ createdAt: -1 })
     res.json(users)
@@ -299,7 +352,7 @@ app.get("/api/admin/users", async (req, res) => {
   }
 })
 
-app.get("/api/admin/users/:id", async (req, res) => {
+app.get("/api/admin/users/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
     
@@ -314,7 +367,7 @@ app.get("/api/admin/users/:id", async (req, res) => {
   }
 })
 
-app.delete("/api/admin/users/:id", async (req, res) => {
+app.delete("/api/admin/users/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
     
@@ -342,7 +395,7 @@ app.delete("/api/admin/users/:id", async (req, res) => {
   }
 })
 
-app.get("/api/admin/courses", async (req, res) => {
+app.get("/api/admin/courses", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const courses = await Course.find().sort({ createdAt: -1 })
     res.json(courses)
@@ -351,7 +404,7 @@ app.get("/api/admin/courses", async (req, res) => {
   }
 })
 
-app.get("/api/admin/courses/:id", async (req, res) => {
+app.get("/api/admin/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
     
@@ -366,7 +419,7 @@ app.get("/api/admin/courses/:id", async (req, res) => {
   }
 })
 
-app.post("/api/courses", async (req, res) => {
+app.post("/api/courses", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { title, description, instructor, category, level, duration, lessons, price, originalPrice, thumbnail } = req.body
     const userId = req.body.userId || req.headers['x-user-id']
@@ -418,7 +471,7 @@ app.patch("/api/courses/:id", async (req, res) => {
   }
 })
 
-app.delete("/api/courses/:id", async (req, res) => {
+app.delete("/api/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
     
@@ -435,7 +488,7 @@ app.delete("/api/courses/:id", async (req, res) => {
   }
 })
 
-app.post("/api/courses/:courseId/lessons", async (req, res) => {
+app.post("/api/courses/:courseId/lessons", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { courseId } = req.params
     const { title, videoUrl, videoUrls, description, order } = req.body
@@ -514,7 +567,7 @@ app.patch("/api/courses/:courseId/lessons/:lessonId", async (req, res) => {
   }
 })
 
-app.delete("/api/courses/:courseId/lessons/:lessonId", async (req, res) => {
+app.delete("/api/courses/:courseId/lessons/:lessonId", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { courseId, lessonId } = req.params
 
@@ -625,7 +678,7 @@ app.patch("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", asyn
   }
 })
 
-app.delete("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", async (req, res) => {
+app.delete("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { courseId, lessonId, materialId } = req.params
 
@@ -729,7 +782,7 @@ app.get("/api/reviews/user/:userId", async (req, res) => {
   }
 })
 
-app.get("/api/admin/reviews", async (req, res) => {
+app.get("/api/admin/reviews", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const reviews = await Review.find()
       .populate('courseId', 'title thumbnail')
@@ -741,7 +794,7 @@ app.get("/api/admin/reviews", async (req, res) => {
   }
 })
 
-app.delete("/api/reviews/:reviewId", async (req, res) => {
+app.delete("/api/reviews/:reviewId", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { reviewId } = req.params
     const review = await Review.findByIdAndDelete(reviewId)
@@ -933,7 +986,7 @@ app.put("/api/enrollments/progress", async (req, res) => {
   }
 })
 
-app.post("/api/admin/sync-enrollment-counts", async (req, res) => {
+app.post("/api/admin/sync-enrollment-counts", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const courses = await Course.find()
     let updated = 0

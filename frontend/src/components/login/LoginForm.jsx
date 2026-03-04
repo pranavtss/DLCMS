@@ -30,6 +30,7 @@ const LoginForm = () => {
       localStorage.setItem("userId", data.userId || data.id || "")
       localStorage.setItem("userName", data.name || "User")
       localStorage.setItem("userRole", data.role)
+      localStorage.setItem("authToken", data.token || "")
 
       const target = data.role === "Admin" ? "/admin" : "/learner"
       navigate(target)
