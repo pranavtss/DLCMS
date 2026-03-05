@@ -446,6 +446,26 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
               placeholder="Material name (e.g., Slides, Code)"
               className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
+            <div className="space-y-1">
+              <input
+                type="file"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                className="w-full text-sm"
+              />
+              <p className="text-xs text-slate-500">
+                {selectedFile
+                  ? `Selected: ${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)}MB)`
+                  : 'Maximum file size: 100MB'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleUploadMaterial}
+              disabled={uploading || !selectedFile}
+              className="w-full px-3 py-1 border border-slate-300 rounded text-xs text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
+            >
+              {uploading ? 'Uploading...' : 'Upload File'}
+            </button>
             <input
               type="url"
               value={newMaterial.url}

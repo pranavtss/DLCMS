@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Edit2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
 import LessonManager from '../components/admin/LessonManager';
+import { apiFetch } from '../utils/api';
 
 const getImageUrl = (path) => {
   if (!path) return null;
@@ -37,7 +38,7 @@ const CourseDetailPage = () => {
 
   const fetchCourseDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/courses/${courseId}`);
+      const response = await apiFetch(`/api/admin/courses/${courseId}`);
       if (!response.ok) {
         throw new Error('Course not found');
       }
@@ -103,9 +104,11 @@ const CourseDetailPage = () => {
       
       console.log('Uploading image:', imageFile.name, imageFile.size);
       
-      const response = await fetch('http://localhost:5000/api/uploads', {
+      const response = await apiFetch('/api/uploads', {
         method: 'POST',
         body: formDataUpload,
+        _skipHeaders: true,
+        _noAutoLogout: true
       });
       
       const data = await response.json();
@@ -132,12 +135,10 @@ const CourseDetailPage = () => {
   const handleUpdateCourse = async () => {
     try {
       setUpdateLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}`, {
+      const response = await apiFetch(`/api/admin/courses/${courseId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           title: editedCourse.title,

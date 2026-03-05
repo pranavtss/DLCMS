@@ -177,7 +177,7 @@ const LearnerCourseDetailPage = () => {
 
   const fetchCourseDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/courses/${courseId}`);
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}`);
       if (!response.ok) {
         throw new Error('Course not found');
       }

@@ -35,23 +35,40 @@ const Progress = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/enrollments/user/${userId}`);
-      
-      if (!response.ok) {
+      const [activeResponse, completedResponse] = await Promise.all([
+        fetch(`http://localhost:5000/api/enrollments/user/${userId}`),
+        fetch(`http://localhost:5000/api/enrollments/completed/${userId}`),
+      ]);
+
+      if (!activeResponse.ok) {
         throw new Error('Failed to fetch enrollments');
       }
 
-      const data = await response.json();
-      setEnrollments(data);
+      const activeEnrollments = await activeResponse.json();
+      let combinedEnrollments = [...activeEnrollments];
 
-      const totalCourses = data.length;
-      const completedCourses = data.filter(e => e.completionPercentage === 100).length;
+      if (completedResponse.ok) {
+        const completedEnrollments = await completedResponse.json();
+        const existingIds = new Set(combinedEnrollments.map(e => e._id));
+
+        completedEnrollments.forEach(enrollment => {
+          if (!existingIds.has(enrollment._id)) {
+            combinedEnrollments.push(enrollment);
+            existingIds.add(enrollment._id);
+          }
+        });
+      }
+
+      setEnrollments(combinedEnrollments);
+
+      const totalCourses = combinedEnrollments.length;
+      const completedCourses = combinedEnrollments.filter(e => e.completionPercentage === 100).length;
       const inProgressCourses = totalCourses - completedCourses;
       
       let totalLessons = 0;
       let completedLessons = 0;
       
-      data.forEach(enrollment => {
+      combinedEnrollments.forEach(enrollment => {
         const course = enrollment.courseId;
         if (course && course.lessons) {
           totalLessons += course.lessons.length;
@@ -62,7 +79,7 @@ const Progress = () => {
       });
 
       const averageProgress = totalCourses > 0
-        ? Math.round(data.reduce((sum, e) => sum + (e.completionPercentage || 0), 0) / totalCourses)
+        ? Math.round(combinedEnrollments.reduce((sum, e) => sum + (e.completionPercentage || 0), 0) / totalCourses)
         : 0;
 
       setStats({
@@ -327,7 +344,7 @@ const Progress = () => {
                         <div className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-2 text-green-600 font-bold">
                             <CheckCircle className="w-4 h-4" />
-                            Completed
+                            100% Complete
                           </span>
                           <span className="text-slate-600">{course.lessons?.length || 0} lessons</span>
                         </div>

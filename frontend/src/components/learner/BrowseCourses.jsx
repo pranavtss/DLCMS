@@ -107,7 +107,7 @@ const BrowseCourses = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/admin/courses');
+      const response = await fetch('http://localhost:5000/api/courses');
       if (!response.ok) {
         throw new Error('Failed to fetch courses');
       }
@@ -165,25 +165,22 @@ const BrowseCourses = () => {
 
   const fetchAllRatings = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/reviews');
-      if (!response.ok) return;
-      const reviews = await response.json();
-      
+      // Derive ratings from course data instead of admin-only reviews endpoint
       const ratingsMap = {};
-      reviews.forEach(review => {
-        const courseId = review.courseId?._id || review.courseId;
-        if (!ratingsMap[courseId]) {
-          ratingsMap[courseId] = { total: 0, count: 0 };
+      courses.forEach(course => {
+        const courseId = course._id;
+        if (!courseId) return;
+        const rating = course.rating || 0;
+        const reviewsCount = course.reviews || 0;
+        if (reviewsCount > 0) {
+          ratingsMap[courseId] = {
+            total: rating * reviewsCount,
+            count: reviewsCount,
+            average: rating.toFixed(1),
+          };
         }
-        ratingsMap[courseId].total += review.rating;
-        ratingsMap[courseId].count += 1;
       });
-      
-      Object.keys(ratingsMap).forEach(courseId => {
-        const { total, count } = ratingsMap[courseId];
-        ratingsMap[courseId].average = (total / count).toFixed(1);
-      });
-      
+
       setCourseRatings(ratingsMap);
     } catch (err) {
       console.error('Error fetching ratings:', err);

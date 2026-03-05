@@ -181,8 +181,10 @@ const Reviews = () => {
     if (!confirm('Are you sure you want to delete this review?')) return;
 
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:5000/api/reviews/${reviewId}`, {
         method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
 
       if (!response.ok) throw new Error('Failed to delete review');
