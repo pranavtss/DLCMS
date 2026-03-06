@@ -657,25 +657,33 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                     </div>
                   ) : (
                     <>
-                      {getLessonVideoUrls(lesson).length > 0 && (
-                        <div>
-                          <label className="text-sm font-medium text-slate-700 block mb-2">
-                            Video URLs
-                          </label>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {getLessonVideoUrls(lesson).map((url, index) => {
-                              const thumbnail = getYouTubeThumbnail(url);
-                              const videoId = getYouTubeVideoId(url);
-                              
-                              return (
-                                <a
-                                  key={`${lesson._id}-video-${index}`}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="group relative block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-brand-300"
-                                >
-                                  {thumbnail ? (
+                      {(() => {
+                        const videoUrls = getLessonVideoUrls(lesson).filter((url) =>
+                          getYouTubeVideoId(url)
+                        );
+
+                        if (videoUrls.length === 0) return null;
+
+                        return (
+                          <div>
+                            <label className="text-sm font-medium text-slate-700 block mb-2">
+                              Video URLs
+                            </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {videoUrls.map((url, index) => {
+                                const thumbnail = getYouTubeThumbnail(url);
+                                const videoId = getYouTubeVideoId(url);
+                                
+                                if (!thumbnail) return null;
+
+                                return (
+                                  <a
+                                    key={`${lesson._id}-video-${index}`}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group relative block rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all border border-slate-200 hover:border-brand-300"
+                                  >
                                     <>
                                       <img
                                         src={thumbnail}
@@ -694,17 +702,13 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                                         {index + 1}
                                       </div>
                                     </>
-                                  ) : (
-                                    <div className="w-full aspect-video bg-slate-200 flex items-center justify-center">
-                                      <Play className="w-8 h-8 text-slate-400" />
-                                    </div>
-                                  )}
-                                </a>
-                              );
-                            })}
+                                  </a>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {lesson.description && (
                         <div>

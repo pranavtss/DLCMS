@@ -373,6 +373,7 @@ const LearnerCourseDetailPage = () => {
           {course.lessons && course.lessons.length > 0 ? (
             course.lessons.map((lesson, index) => {
               const videoUrls = getLessonVideoUrls(lesson);
+              const youtubeVideoUrls = videoUrls.filter((url) => getYouTubeVideoId(url));
               const isExpanded = expandedLessons[lesson._id];
 
               return (
@@ -453,14 +454,14 @@ const LearnerCourseDetailPage = () => {
                           </div>
                         )}
 
-                        {videoUrls.length > 0 && (
+                        {youtubeVideoUrls.length > 0 && (
                           <div>
                             <h4 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
                               <Play className="w-5 h-5 text-blue-600" />
                               Video Lessons
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {videoUrls.map((videoUrl, vidIndex) => {
+                              {youtubeVideoUrls.map((videoUrl, vidIndex) => {
                                 const thumbnail = getYouTubeThumbnail(videoUrl);
                                 const videoId = getYouTubeVideoId(videoUrl);
                                 
@@ -472,30 +473,24 @@ const LearnerCourseDetailPage = () => {
                                     rel="noopener noreferrer"
                                     className="group relative block rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all border border-slate-200"
                                   >
-                                    {thumbnail ? (
-                                      <>
-                                        <img
-                                          src={thumbnail}
-                                          alt={`Video ${vidIndex + 1}`}
-                                          className="w-full aspect-video object-cover group-hover:scale-105 transition-transform"
-                                          onError={(e) => {
-                                            e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                                          }}
-                                        />
-                                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                                          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                                            <Play className="w-8 h-8 text-white fill-white ml-1" />
-                                          </div>
+                                    <>
+                                      <img
+                                        src={thumbnail}
+                                        alt={`Video ${vidIndex + 1}`}
+                                        className="w-full aspect-video object-cover group-hover:scale-105 transition-transform"
+                                        onError={(e) => {
+                                          e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                                        }}
+                                      />
+                                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                        <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                                          <Play className="w-8 h-8 text-white fill-white ml-1" />
                                         </div>
-                                        <div className="absolute top-2 right-2 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded">
-                                          Video {vidIndex + 1}
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="w-full aspect-video bg-slate-200 flex items-center justify-center">
-                                        <Play className="w-12 h-12 text-slate-400" />
                                       </div>
-                                    )}
+                                      <div className="absolute top-2 right-2 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded">
+                                        Video {vidIndex + 1}
+                                      </div>
+                                    </>
                                   </a>
                                 );
                               })}
@@ -522,7 +517,7 @@ const LearnerCourseDetailPage = () => {
                           </button>
                         </div>
 
-                        {!lesson.description && videoUrls.length === 0 && (!lesson.materials || lesson.materials.length === 0) && (
+                        {!lesson.description && youtubeVideoUrls.length === 0 && (!lesson.materials || lesson.materials.length === 0) && (
                           <div className="text-center py-8 text-slate-500">
                             <BookOpen className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                             <p>No content available for this lesson yet</p>
