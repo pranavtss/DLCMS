@@ -46,7 +46,7 @@ const Reviews = () => {
       const [completedResponse, reviewsResponse, coursesResponse] = await Promise.all([
         fetch(`http://localhost:5000/api/enrollments/completed/${userId}`),
         fetch(`http://localhost:5000/api/reviews/user/${userId}`),
-        fetch('http://localhost:5000/api/admin/courses')
+        fetch('http://localhost:5000/api/courses')
       ]);
 
       let completedCourses = [];
