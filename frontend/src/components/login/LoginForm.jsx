@@ -216,7 +216,7 @@ const LoginForm = () => {
       </div>
 
       <p className="mt-6 text-center text-xs text-slate-500">
-        Don&apos;t have an account?{" "}
+        Don't have an account?{" "}
         <span className="font-semibold text-brand-600 cursor-pointer" onClick={() => navigate("/register")}>
           Create an account
         </span>
