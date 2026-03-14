@@ -1,6 +1,6 @@
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
-import { apiFetch, getImageUrl } from '../../utils/api';
+import { getImageUrl } from '../../utils/api';
 
 const CourseForm = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +19,14 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.readAsDataURL(file);
+    });
+
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -36,29 +44,13 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
     
     try {
       setUploadingImage(true);
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', imageFile);
-      
-      console.log('Uploading course image:', imageFile.name, imageFile.size);
-      
-      const response = await apiFetch('/api/uploads', {
-        method: 'POST',
-        body: formDataUpload,
-        _skipHeaders: true, // Don't set Content-Type, let browser set it for multipart
-        _noAutoLogout: true // Don't auto-logout on 403
-      });
-      
-      const data = await response.json();
-      console.log('Course image upload response:', {status: response.status, data});
-      
-      if (!response.ok) throw new Error(data.message || 'Failed to upload image');
-      
-      setFormData(prev => ({ ...prev, thumbnail: data.url }));
+      const thumbnailDataUrl = await readFileAsDataUrl(imageFile);
+      setFormData(prev => ({ ...prev, thumbnail: thumbnailDataUrl }));
       setError('');
-      console.log('Course image uploaded successfully');
+      console.log('Course image prepared for database storage');
     } catch (err) {
-      console.error('Course image upload error:', err);
-      setError('Failed to upload image: ' + err.message);
+      console.error('Course image processing error:', err);
+      setError('Failed to process image: ' + err.message);
     } finally {
       setUploadingImage(false);
     }

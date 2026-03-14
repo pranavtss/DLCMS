@@ -26,6 +26,14 @@ const CourseDetailPage = () => {
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const readFileAsDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.readAsDataURL(file);
+    });
+
   useEffect(() => {
     fetchCourseDetails();
   }, [courseId]);
@@ -56,7 +64,7 @@ const CourseDetailPage = () => {
       status: course.isPublished ? 'launch' : 'pause',
       thumbnail: course.thumbnail || ''
     });
-    setImagePreview(course.thumbnail || '');
+    setImagePreview(getImageUrl(course.thumbnail) || '');
     setIsEditingCourse(true);
   };
 
@@ -93,28 +101,12 @@ const CourseDetailPage = () => {
     
     try {
       setUploadingImage(true);
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', imageFile);
-      
-      console.log('Uploading image:', imageFile.name, imageFile.size);
-      
-      const response = await apiFetch('/api/uploads', {
-        method: 'POST',
-        body: formDataUpload,
-        _skipHeaders: true,
-        _noAutoLogout: true
-      });
-      
-      const data = await response.json();
-      console.log('Image upload response:', {status: response.status, data});
-      
-      if (!response.ok) throw new Error(data.message || 'Failed to upload image');
-      
-      setEditedCourse(prev => ({ ...prev, thumbnail: data.url }));
-      console.log('Image uploaded successfully');
+      const thumbnailDataUrl = await readFileAsDataUrl(imageFile);
+      setEditedCourse(prev => ({ ...prev, thumbnail: thumbnailDataUrl }));
+      console.log('Image prepared for database storage');
     } catch (err) {
-      console.error('Image upload error:', err);
-      alert('Failed to upload image: ' + err.message);
+      console.error('Image processing error:', err);
+      alert('Failed to process image: ' + err.message);
     } finally {
       setUploadingImage(false);
     }
