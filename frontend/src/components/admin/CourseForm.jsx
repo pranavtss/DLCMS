@@ -238,11 +238,15 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
               required
             >
               <option value="">Select a category</option>
-              <option value="Programming">Programming</option>
-              <option value="Design">Design</option>
-              <option value="Business">Business</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Photography">Photography</option>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Science">Science</option>
+              <option value="Physics">Physics</option>
+              <option value="Chemistry">Chemistry</option>
+              <option value="Biology">Biology</option>
+              <option value="English">English</option>
+              <option value="History">History</option>
+              <option value="Geography">Geography</option>
+              <option value="Computer Science">Computer Science</option>
               <option value="Other">Other</option>
             </select>
           </div>

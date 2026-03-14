@@ -290,11 +290,15 @@ const CourseDetailPage = () => {
                         onChange={(e) => setEditedCourse({ ...editedCourse, category: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-500"
                       >
-                        <option value="Programming">Programming</option>
-                        <option value="Design">Design</option>
-                        <option value="Business">Business</option>
-                        <option value="Marketing">Marketing</option>
-                        <option value="Data Science">Data Science</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Science">Science</option>
+                        <option value="Physics">Physics</option>
+                        <option value="Chemistry">Chemistry</option>
+                        <option value="Biology">Biology</option>
+                        <option value="English">English</option>
+                        <option value="History">History</option>
+                        <option value="Geography">Geography</option>
+                        <option value="Computer Science">Computer Science</option>
                         <option value="Other">Other</option>
                       </select>
                     </div>
