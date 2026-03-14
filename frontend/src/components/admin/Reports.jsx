@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Users, CheckCircle, Clock, Download, Funnel, Trophy } from 'lucide-react';
+import { BookOpen, Users, CheckCircle, Clock, Download, Funnel, Trophy, Star } from 'lucide-react';
 import { apiFetch } from '../../utils/api';
 import SearchBar from '../common/SearchBar';
 
@@ -406,7 +406,7 @@ const Reports = () => {
       </div>
 
       {course && (
-        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
@@ -443,6 +443,23 @@ const Reports = () => {
               </div>
               <div className="w-10 sm:w-12 h-10 sm:h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
                 <CheckCircle className="w-5 sm:w-6 h-5 sm:h-6 text-emerald-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-slate-600 mb-1">Avg. Rating</p>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">
+                  {(Number(course.rating) || 0).toFixed(1)}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {Number(course.reviews) || 0} review{(Number(course.reviews) || 0) === 1 ? '' : 's'}
+                </p>
+              </div>
+              <div className="w-10 sm:w-12 h-10 sm:h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Star className="w-5 sm:w-6 h-5 sm:h-6 text-yellow-600" />
               </div>
             </div>
           </div>
