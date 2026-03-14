@@ -369,9 +369,24 @@ const LearnerCourseDetailPage = () => {
           </p>
         </div>
 
-        <div className="space-y-3">
-          {course.lessons && course.lessons.length > 0 ? (
-            course.lessons.map((lesson, index) => {
+        {!isEnrolled ? (
+          <div className="px-6 py-12 text-center text-slate-500">
+            <BookOpen className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+            <p className="text-base font-medium text-slate-700 mb-1">Content is locked</p>
+            <p className="text-sm text-slate-500 mb-5">
+              Enroll in this course from Browse Courses to access lessons, videos, and materials.
+            </p>
+            <button
+              onClick={() => navigate('/learner/browse-courses')}
+              className="px-5 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-semibold transition-colors"
+            >
+              Go to Browse Courses
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {course.lessons && course.lessons.length > 0 ? (
+              course.lessons.map((lesson, index) => {
               const videoUrls = getLessonVideoUrls(lesson);
               const youtubeVideoUrls = videoUrls.filter((url) => getYouTubeVideoId(url));
               const isExpanded = expandedLessons[lesson._id];
@@ -528,14 +543,15 @@ const LearnerCourseDetailPage = () => {
                   )}
                 </div>
               );
-            })
-          ) : (
-            <div className="px-6 py-12 text-center text-slate-500">
-              <BookOpen className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-              <p>No lessons available yet</p>
-            </div>
-          )}
-        </div>
+              })
+            ) : (
+              <div className="px-6 py-12 text-center text-slate-500">
+                <BookOpen className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                <p>No lessons available yet</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

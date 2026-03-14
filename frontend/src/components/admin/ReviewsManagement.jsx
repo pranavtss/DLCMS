@@ -141,7 +141,7 @@ const ReviewsManagement = () => {
       {!selectedCourseId ? (
         <>
           <div className="mb-8">
-            <h1 className="text-3xl font-semibold text-slate-900">Courses</h1>
+            <h1 className="text-3xl font-semibold text-slate-900">Reviews</h1>
             <p className="text-slate-600 mt-1">Select a course to view its reviews</p>
           </div>
 
