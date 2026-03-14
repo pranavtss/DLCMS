@@ -3,13 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Trash2, Edit2, Users } from 'lucide-react';
 import CourseForm from './CourseForm';
 import SearchBar from '../common/SearchBar';
-import { apiFetch } from '../../utils/api';
-
-const getImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return `https://dlcms-g6hp.onrender.com${path}`;
-};
+import { apiFetch, getImageUrl } from '../../utils/api';
 
 const Courses = () => {
   const navigate = useNavigate();

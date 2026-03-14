@@ -4,6 +4,29 @@
 
 const API_BASE_URL = "https://dlcms-g6hp.onrender.com"
 
+export const getImageUrl = (path) => {
+  if (!path) return null
+
+  if (path.startsWith("blob:") || path.startsWith("data:")) {
+    return path
+  }
+
+  if (!path.startsWith("http")) {
+    return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`
+  }
+
+  try {
+    const parsedUrl = new URL(path)
+    if (parsedUrl.pathname.startsWith("/uploads/")) {
+      return `${API_BASE_URL}${parsedUrl.pathname}`
+    }
+  } catch {
+    return path
+  }
+
+  return path
+}
+
 /**
  * Get authorization headers with JWT token
  */

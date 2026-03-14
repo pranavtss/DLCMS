@@ -1,6 +1,6 @@
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
-import { apiFetch } from '../../utils/api';
+import { apiFetch, getImageUrl } from '../../utils/api';
 
 const CourseForm = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -165,7 +165,7 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
               {imagePreview || formData.thumbnail ? (
                 <div className="relative">
                   <img
-                    src={imagePreview || formData.thumbnail}
+                    src={imagePreview || getImageUrl(formData.thumbnail)}
                     alt="Course preview"
                     className="w-full h-48 object-cover rounded-lg"
                   />

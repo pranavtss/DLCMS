@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, CheckCircle, Clock, TrendingUp, Award, Target } from 'lucide-react';
-
-const getImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return `https://dlcms-g6hp.onrender.com${path}`;
-};
+import { getImageUrl } from '../../utils/api';
 
 const Progress = () => {
   const navigate = useNavigate();

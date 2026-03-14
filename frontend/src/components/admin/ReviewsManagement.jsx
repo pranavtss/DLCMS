@@ -2,13 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, MessageSquare, User, Calendar, Trash2, ArrowLeft, BookOpen, X } from 'lucide-react';
 import SearchBar from '../common/SearchBar';
-import { apiFetch } from '../../utils/api';
-
-const getImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return `https://dlcms-g6hp.onrender.com${path}`;
-};
+import { apiFetch, getImageUrl } from '../../utils/api';
 
 const ReviewsManagement = () => {
   const navigate = useNavigate();

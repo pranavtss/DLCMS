@@ -2,13 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Edit2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
 import LessonManager from '../components/admin/LessonManager';
-import { apiFetch } from '../utils/api';
-
-const getImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return `https://dlcms-g6hp.onrender.com${path}`;
-};
+import { apiFetch, getImageUrl } from '../utils/api';
 
 const CourseDetailPage = () => {
   const { courseId } = useParams();

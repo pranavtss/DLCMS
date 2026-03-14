@@ -2,12 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, GraduationCap, Clock } from 'lucide-react';
 import SearchBar from '../common/SearchBar';
-
-const getImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return `https://dlcms-g6hp.onrender.com${path}`;
-};
+import { getImageUrl } from '../../utils/api';
 
 const MyCourses = () => {
   const navigate = useNavigate();

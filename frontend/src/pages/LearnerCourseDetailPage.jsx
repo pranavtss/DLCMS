@@ -67,11 +67,7 @@ const getLessonVideoUrls = (lesson) => {
   return [];
 };
 
-const getImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return `https://dlcms-g6hp.onrender.com${path}`;
-};
+import { getImageUrl } from '../utils/api';
 
 const LearnerCourseDetailPage = () => {
   const { courseId } = useParams();
