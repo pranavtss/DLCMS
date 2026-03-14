@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Download, Play, Edit2, Save, X } from 'lucide-react';
+import { Plus, Trash2, Download, Play, Edit2, Save, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { apiFetch } from '../../utils/api';
 
 const getYouTubeVideoId = (url) => {
@@ -32,6 +32,29 @@ const getYouTubeThumbnail = (url) => {
   const videoId = getYouTubeVideoId(url);
   if (!videoId) return null;
   return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+};
+
+const getYouTubeThumbnailFallbacks = (videoId) => [
+  `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+  `https://img.youtube.com/vi/${videoId}/default.jpg`,
+];
+
+const handleYouTubeThumbnailError = (event, videoId) => {
+  if (!videoId) return;
+
+  const img = event.currentTarget;
+  const fallbacks = getYouTubeThumbnailFallbacks(videoId);
+  const index = Number(img.dataset.fallbackIndex || '0');
+
+  if (index < fallbacks.length) {
+    img.dataset.fallbackIndex = String(index + 1);
+    img.src = fallbacks[index];
+    return;
+  }
+
+  // Stop retry loop after all known thumbnail variants fail.
+  img.onerror = null;
+  img.style.display = 'none';
 };
 
 const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMaterialDeleted }) => {
@@ -325,6 +348,45 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
     }
   };
 
+  const handleReorderLesson = async (lessonId, direction) => {
+    const ordered = [...(lessons || [])].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0)
+    );
+
+    const currentIndex = ordered.findIndex((lesson) => lesson._id === lessonId);
+    if (currentIndex < 0) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= ordered.length) return;
+
+    [ordered[currentIndex], ordered[targetIndex]] = [ordered[targetIndex], ordered[currentIndex]];
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const updateResponses = await Promise.all(
+        ordered.map((lesson, index) =>
+          apiFetch(`/api/courses/${courseId}/lessons/${lesson._id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ order: index }),
+          })
+        )
+      );
+
+      const failed = updateResponses.find((response) => !response.ok);
+      if (failed) {
+        throw new Error('Failed to reorder lessons');
+      }
+
+      onLessonAdded();
+    } catch (err) {
+      setError(err.message || 'Failed to reorder lessons');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleStartEditMaterial = (material) => {
     setEditingMaterialId(material._id);
     setEditingMaterialData({
@@ -539,7 +601,9 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
 
       {lessons && lessons.length > 0 ? (
         <div className="space-y-3">
-          {lessons.map((lesson) => (
+          {[...(lessons || [])]
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+            .map((lesson, index, orderedLessons) => (
             <div key={lesson._id} className="border border-slate-200 rounded-lg overflow-hidden">
               <div
                 className="w-full flex items-start justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer"
@@ -548,6 +612,9 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                 }
               >
                 <div className="flex items-start gap-3 flex-1 text-left">
+                  <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded mt-0.5">
+                    {index + 1}
+                  </span>
                   {getLessonVideoUrls(lesson).length > 0 && (
                     <Play className="w-5 h-5 text-brand-600 flex-shrink-0 mt-0.5" />
                   )}
@@ -559,6 +626,28 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReorderLesson(lesson._id, 'up');
+                    }}
+                    disabled={loading || index === 0}
+                    className="text-slate-500 hover:text-brand-600 p-1 disabled:opacity-40"
+                    title="Move lesson up"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReorderLesson(lesson._id, 'down');
+                    }}
+                    disabled={loading || index === orderedLessons.length - 1}
+                    className="text-slate-500 hover:text-brand-600 p-1 disabled:opacity-40"
+                    title="Move lesson down"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -689,9 +778,7 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                                         src={thumbnail}
                                         alt={`Video ${index + 1}`}
                                         className="w-full aspect-video object-cover group-hover:scale-105 transition-transform"
-                                        onError={(e) => {
-                                          e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                                        }}
+                                        onError={(e) => handleYouTubeThumbnailError(e, videoId)}
                                       />
                                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                                         <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">

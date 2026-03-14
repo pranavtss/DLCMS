@@ -439,7 +439,7 @@ app.get("/api/admin/courses/:id", authenticateToken, authorizeAdmin, async (req,
 
 app.post("/api/courses", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
-    const { title, description, instructor, category, level, duration, lessons, price, originalPrice, thumbnail } = req.body
+    const { title, description, instructor, category, level, duration, lessons, price, originalPrice, thumbnail, status } = req.body
     const userId = req.body.userId || req.headers['x-user-id']
     
     if (!title || !description || !instructor || !category) {
@@ -447,6 +447,8 @@ app.post("/api/courses", authenticateToken, authorizeAdmin, async (req, res) => 
     }
 
     const normalizedLessons = Array.isArray(lessons) ? lessons : []
+    const normalizedStatus = String(status || "pause").toLowerCase()
+    const isPublished = normalizedStatus === "launch"
 
     const course = await Course.create({
       title,
@@ -459,7 +461,7 @@ app.post("/api/courses", authenticateToken, authorizeAdmin, async (req, res) => 
       price: price || 0,
       originalPrice,
       thumbnail,
-      isPublished: true,
+      isPublished,
       createdBy: userId,
     })
 
@@ -474,7 +476,13 @@ app.post("/api/courses", authenticateToken, authorizeAdmin, async (req, res) => 
 app.patch("/api/courses/:id", async (req, res) => {
   try {
     const { id } = req.params
-    const updates = req.body
+    const updates = { ...req.body }
+
+    if (Object.prototype.hasOwnProperty.call(updates, "status")) {
+      const normalizedStatus = String(updates.status || "pause").toLowerCase()
+      updates.isPublished = normalizedStatus === "launch"
+      delete updates.status
+    }
     
     const course = await Course.findByIdAndUpdate(id, updates, { new: true })
     
@@ -493,7 +501,13 @@ app.patch("/api/courses/:id", async (req, res) => {
 app.patch("/api/admin/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
-    const updates = req.body
+    const updates = { ...req.body }
+
+    if (Object.prototype.hasOwnProperty.call(updates, "status")) {
+      const normalizedStatus = String(updates.status || "pause").toLowerCase()
+      updates.isPublished = normalizedStatus === "launch"
+      delete updates.status
+    }
 
     const course = await Course.findByIdAndUpdate(id, updates, { new: true })
 
@@ -581,20 +595,23 @@ app.patch("/api/courses/:courseId/lessons/:lessonId", async (req, res) => {
       return res.status(404).json({ message: "Lesson not found" })
     }
 
-    const normalizedVideoUrls = Array.isArray(videoUrls)
-      ? videoUrls
-      : videoUrl
-        ? [videoUrl]
-        : null
+    const hasVideoUrls = Object.prototype.hasOwnProperty.call(req.body, "videoUrls")
+    const hasVideoUrl = Object.prototype.hasOwnProperty.call(req.body, "videoUrl")
 
-    if (title) lesson.title = title
-    if (normalizedVideoUrls) {
+    if (title !== undefined) lesson.title = title
+    if (hasVideoUrls) {
+      const normalizedVideoUrls = Array.isArray(videoUrls)
+        ? videoUrls.filter((url) => typeof url === "string" && url.trim())
+        : []
       lesson.videoUrls = normalizedVideoUrls
-      lesson.videoUrl = normalizedVideoUrls[0] || lesson.videoUrl
-    } else if (videoUrl) {
-      lesson.videoUrl = videoUrl
+      // Keep legacy field in sync; clear it when no URLs remain.
+      lesson.videoUrl = normalizedVideoUrls[0] || ""
+    } else if (hasVideoUrl) {
+      const normalizedVideoUrl = typeof videoUrl === "string" ? videoUrl.trim() : ""
+      lesson.videoUrl = normalizedVideoUrl
+      lesson.videoUrls = normalizedVideoUrl ? [normalizedVideoUrl] : []
     }
-    if (description) lesson.description = description
+    if (description !== undefined) lesson.description = description
     if (order !== undefined) lesson.order = order
 
     await course.save()

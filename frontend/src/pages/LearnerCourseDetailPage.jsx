@@ -33,6 +33,30 @@ const getYouTubeThumbnail = (url) => {
   return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 };
 
+const getYouTubeThumbnailFallbacks = (videoId) => [
+  `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+  `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+  `https://img.youtube.com/vi/${videoId}/default.jpg`,
+];
+
+const handleYouTubeThumbnailError = (event, videoId) => {
+  if (!videoId) return;
+
+  const img = event.currentTarget;
+  const fallbacks = getYouTubeThumbnailFallbacks(videoId);
+  const index = Number(img.dataset.fallbackIndex || '0');
+
+  if (index < fallbacks.length) {
+    img.dataset.fallbackIndex = String(index + 1);
+    img.src = fallbacks[index];
+    return;
+  }
+
+  // Stop retry loop after all known thumbnail variants fail.
+  img.onerror = null;
+  img.style.display = 'none';
+};
+
 const getLessonVideoUrls = (lesson) => {
   if (lesson.videoUrls && lesson.videoUrls.length > 0) {
     return lesson.videoUrls;
@@ -493,9 +517,7 @@ const LearnerCourseDetailPage = () => {
                                         src={thumbnail}
                                         alt={`Video ${vidIndex + 1}`}
                                         className="w-full aspect-video object-cover group-hover:scale-105 transition-transform"
-                                        onError={(e) => {
-                                          e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                                        }}
+                                        onError={(e) => handleYouTubeThumbnailError(e, videoId)}
                                       />
                                       <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                                         <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">

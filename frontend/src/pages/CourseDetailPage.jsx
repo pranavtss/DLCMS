@@ -24,7 +24,7 @@ const CourseDetailPage = () => {
     level: '',
     duration: '',
     instructor: '',
-    status: 'active',
+    status: 'pause',
     thumbnail: ''
   });
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -59,7 +59,7 @@ const CourseDetailPage = () => {
       level: course.level || '',
       duration: course.duration || '',
       instructor: course.instructor || '',
-      status: course.status || 'active',
+      status: course.isPublished ? 'launch' : 'pause',
       thumbnail: course.thumbnail || ''
     });
     setImagePreview(course.thumbnail || '');
@@ -75,7 +75,7 @@ const CourseDetailPage = () => {
       level: '',
       duration: '',
       instructor: '',
-      status: 'active',
+      status: 'pause',
       thumbnail: ''
     });
     setImageFile(null);
@@ -406,9 +406,8 @@ const CourseDetailPage = () => {
                     onChange={(e) => setEditedCourse({ ...editedCourse, status: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
-                    <option value="active">Active</option>
-                    <option value="draft">Draft</option>
-                    <option value="archived">Archived</option>
+                    <option value="launch">Launch</option>
+                    <option value="pause">Pause</option>
                   </select>
                 </div>
               </div>
@@ -451,11 +450,9 @@ const CourseDetailPage = () => {
                   Status
                 </p>
                 <p className={`text-lg font-semibold ${
-                  course.status === 'active' ? 'text-green-600' : 
-                  course.status === 'draft' ? 'text-amber-600' : 
-                  'text-slate-600'
+                  course.isPublished ? 'text-green-600' : 'text-amber-600'
                 }`}>
-                  {course.status ? course.status.charAt(0).toUpperCase() + course.status.slice(1) : 'Active'}
+                  {course.isPublished ? 'Launch' : 'Pause'}
                 </p>
               </div>
             </div>
