@@ -135,7 +135,7 @@ const CourseDetailPage = () => {
   const handleUpdateCourse = async () => {
     try {
       setUpdateLoading(true);
-      const response = await apiFetch(`/api/admin/courses/${courseId}`, {
+      const response = await apiFetch(`/api/courses/${courseId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +153,14 @@ const CourseDetailPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update course');
+        let message = 'Failed to update course';
+        try {
+          const errorData = await response.json();
+          message = errorData?.message || errorData?.error || message;
+        } catch {
+          // Keep default message if response is not JSON
+        }
+        throw new Error(message);
       }
 
       await fetchCourseDetails();
