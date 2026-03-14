@@ -5,7 +5,7 @@ import { BookOpen, CheckCircle, Clock, TrendingUp, Award, Target } from 'lucide-
 const getImageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  return `http://localhost:5000${path}`;
+  return `https://dlcms-g6hp.onrender.com${path}`;
 };
 
 const Progress = () => {
@@ -36,8 +36,8 @@ const Progress = () => {
       }
 
       const [activeResponse, completedResponse] = await Promise.all([
-        fetch(`http://localhost:5000/api/enrollments/user/${userId}`),
-        fetch(`http://localhost:5000/api/enrollments/completed/${userId}`),
+        fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/user/${userId}`),
+        fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/completed/${userId}`),
       ]);
 
       if (!activeResponse.ok) {

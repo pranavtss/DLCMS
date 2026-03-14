@@ -241,7 +241,7 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
 
       setNewMaterial((prev) => ({
         ...prev,
-        url: `http://localhost:5000${data.url}`,
+        url: `https://dlcms-g6hp.onrender.com${data.url}`,
         name: prev.name || data.originalName || selectedFile?.name || '',
         type: prev.type === 'pdf' ? inferredType : prev.type,
       }));
@@ -349,7 +349,7 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
     setError('');
 
     try {
-      const url = `http://localhost:5000/api/courses/${courseId}/lessons/${lessonId}/materials/${materialId}`;
+      const url = `https://dlcms-g6hp.onrender.com/api/courses/${courseId}/lessons/${lessonId}/materials/${materialId}`;
       console.log('🔄 Updating material:', {
         courseId,
         lessonId,

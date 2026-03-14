@@ -15,7 +15,7 @@ const Register = () => {
 
   const handleGoogleLogin = async (response) => {
     try {
-      const apiResponse = await fetch("http://localhost:5000/api/auth/google", {
+      const apiResponse = await fetch("https://dlcms-g6hp.onrender.com/api/auth/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credential: response.credential }),
@@ -92,7 +92,7 @@ const Register = () => {
       console.log('  Email:', formState.email)
       console.log('  Role:', role)
       
-      const response = await fetch("http://localhost:5000/api/auth/register", {
+      const response = await fetch("https://dlcms-g6hp.onrender.com/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...formState, role }),

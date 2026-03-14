@@ -6,7 +6,7 @@ import SearchBar from '../common/SearchBar';
 const getImageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  return `http://localhost:5000${path}`;
+  return `https://dlcms-g6hp.onrender.com${path}`;
 };
 
 const MyCourses = () => {
@@ -28,7 +28,7 @@ const MyCourses = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/enrollments/user/${userId}`);
+      const response = await fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/user/${userId}`);
       if (!response.ok) throw new Error('Failed to fetch enrollments');
       const enrollments = await response.json();
       const enrolled = enrollments

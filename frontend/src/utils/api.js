@@ -2,7 +2,7 @@
  * API Utility Functions for authenticated requests
  */
 
-const API_BASE_URL = "http://localhost:5000"
+const API_BASE_URL = "https://dlcms-g6hp.onrender.com"
 
 /**
  * Get authorization headers with JWT token

@@ -46,7 +46,7 @@ const getLessonVideoUrls = (lesson) => {
 const getImageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  return `http://localhost:5000${path}`;
+  return `https://dlcms-g6hp.onrender.com${path}`;
 };
 
 const LearnerCourseDetailPage = () => {
@@ -81,7 +81,7 @@ const LearnerCourseDetailPage = () => {
       
       for (const [lessonId, isCompleted] of Object.entries(completed)) {
         if (isCompleted) {
-          await fetch('http://localhost:5000/api/enrollments/progress', {
+          await fetch('https://dlcms-g6hp.onrender.com/api/enrollments/progress', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, courseId, lessonId, completed: true })
@@ -101,7 +101,7 @@ const LearnerCourseDetailPage = () => {
     try {
       if (!userId) return;
 
-      await fetch('http://localhost:5000/api/enrollments/progress', {
+      await fetch('https://dlcms-g6hp.onrender.com/api/enrollments/progress', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,7 +123,7 @@ const LearnerCourseDetailPage = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/enrollments/user/${userId}`);
+      const response = await fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/user/${userId}`);
       if (!response.ok) {
         setIsEnrolled(false);
         return;
@@ -149,7 +149,7 @@ const LearnerCourseDetailPage = () => {
 
       setUnenrolling(true);
 
-      const response = await fetch(`http://localhost:5000/api/enrollments/${courseId}`, {
+      const response = await fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/${courseId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
@@ -177,7 +177,7 @@ const LearnerCourseDetailPage = () => {
 
   const fetchCourseDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/courses/${courseId}`);
+      const response = await fetch(`https://dlcms-g6hp.onrender.com/api/courses/${courseId}`);
       if (!response.ok) {
         throw new Error('Course not found');
       }

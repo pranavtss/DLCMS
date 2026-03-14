@@ -5,7 +5,7 @@ import { BookOpen, Filter, Clock, Users, Star, Search } from 'lucide-react';
 const getImageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  return `http://localhost:5000${path}`;
+  return `https://dlcms-g6hp.onrender.com${path}`;
 };
 
 const BrowseCourses = () => {
@@ -42,7 +42,7 @@ const BrowseCourses = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/enrollments/user/${userId}`);
+      const response = await fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/user/${userId}`);
       if (!response.ok) {
         setEnrolledCourses([]);
         return;
@@ -71,7 +71,7 @@ const BrowseCourses = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/enrollments', {
+      const response = await fetch('https://dlcms-g6hp.onrender.com/api/enrollments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, courseId: course._id }),
@@ -107,7 +107,7 @@ const BrowseCourses = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/courses');
+      const response = await fetch('https://dlcms-g6hp.onrender.com/api/courses');
       if (!response.ok) {
         throw new Error('Failed to fetch courses');
       }

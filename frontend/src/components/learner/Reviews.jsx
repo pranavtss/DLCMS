@@ -44,9 +44,9 @@ const Reviews = () => {
       console.log('📥 Fetching completed courses from backend for userId:', userId);
       
       const [completedResponse, reviewsResponse, coursesResponse] = await Promise.all([
-        fetch(`http://localhost:5000/api/enrollments/completed/${userId}`),
-        fetch(`http://localhost:5000/api/reviews/user/${userId}`),
-        fetch('http://localhost:5000/api/courses')
+        fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/completed/${userId}`),
+        fetch(`https://dlcms-g6hp.onrender.com/api/reviews/user/${userId}`),
+        fetch('https://dlcms-g6hp.onrender.com/api/courses')
       ]);
 
       let completedCourses = [];
@@ -109,7 +109,7 @@ const Reviews = () => {
       }
 
       console.log('📥 Fetching reviews for userId:', userId);
-      const response = await fetch(`http://localhost:5000/api/reviews/user/${userId}`);
+      const response = await fetch(`https://dlcms-g6hp.onrender.com/api/reviews/user/${userId}`);
       
       if (!response.ok) {
         console.error('❌ Failed to fetch reviews. Status:', response.status);
@@ -140,7 +140,7 @@ const Reviews = () => {
       const userId = localStorage.getItem('userId');
       const userName = localStorage.getItem('userName') || 'User';
 
-      const response = await fetch('http://localhost:5000/api/reviews', {
+      const response = await fetch('https://dlcms-g6hp.onrender.com/api/reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ const Reviews = () => {
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/reviews/${reviewId}`, {
+      const response = await fetch(`https://dlcms-g6hp.onrender.com/api/reviews/${reviewId}`, {
         method: 'DELETE',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
