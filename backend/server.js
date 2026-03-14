@@ -489,6 +489,25 @@ app.patch("/api/courses/:id", async (req, res) => {
   }
 })
 
+// Backward-compatible admin route used by older frontend bundles
+app.patch("/api/admin/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+    const updates = req.body
+
+    const course = await Course.findByIdAndUpdate(id, updates, { new: true })
+
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" })
+    }
+
+    console.log(`✅ Course updated (admin route): ${course.title}`)
+    res.json({ message: "Course updated successfully", course })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update course", error: error.message })
+  }
+})
+
 app.delete("/api/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
@@ -850,7 +869,12 @@ app.post("/api/enrollments", async (req, res) => {
 
     const existing = await Enrollment.findOne({ userId, courseId })
     if (existing && existing.status === "enrolled") {
-      return res.status(409).json({ message: "Already enrolled in this course" })
+      const currentCourse = await Course.findById(courseId).select("students")
+      return res.json({
+        message: "Already enrolled in this course",
+        enrollment: existing,
+        students: currentCourse?.students ?? 0,
+      })
     }
 
     if (existing && existing.status === "unenrolled") {
