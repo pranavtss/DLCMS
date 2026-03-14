@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Download, Play, Edit2, Save, X, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, Download, Play, Edit2, Save, X, GripVertical } from 'lucide-react';
 import { apiFetch } from '../../utils/api';
 
 const getYouTubeVideoId = (url) => {
@@ -88,6 +88,8 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [dragLessonId, setDragLessonId] = useState(null);
+  const [dragOverLessonId, setDragOverLessonId] = useState(null);
 
   const normalizeVideoUrls = (value) =>
     value
@@ -348,25 +350,13 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
     }
   };
 
-  const handleReorderLesson = async (lessonId, direction) => {
-    const ordered = [...(lessons || [])].sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0)
-    );
-
-    const currentIndex = ordered.findIndex((lesson) => lesson._id === lessonId);
-    if (currentIndex < 0) return;
-
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= ordered.length) return;
-
-    [ordered[currentIndex], ordered[targetIndex]] = [ordered[targetIndex], ordered[currentIndex]];
-
+  const handlePersistLessonOrder = async (orderedLessons) => {
     setLoading(true);
     setError('');
 
     try {
       const updateResponses = await Promise.all(
-        ordered.map((lesson, index) =>
+        orderedLessons.map((lesson, index) =>
           apiFetch(`/api/courses/${courseId}/lessons/${lesson._id}`, {
             method: 'PATCH',
             body: JSON.stringify({ order: index }),
@@ -386,6 +376,57 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
       setLoading(false);
     }
   };
+
+  const handleDragStart = (lessonId) => {
+    setDragLessonId(lessonId);
+    setDragOverLessonId(lessonId);
+  };
+
+  const handleDragOver = (event, lessonId) => {
+    event.preventDefault();
+    if (dragLessonId && dragLessonId !== lessonId) {
+      setDragOverLessonId(lessonId);
+    }
+  };
+
+  const handleDrop = async (event, targetLessonId) => {
+    event.preventDefault();
+
+    if (!dragLessonId || dragLessonId === targetLessonId) {
+      setDragLessonId(null);
+      setDragOverLessonId(null);
+      return;
+    }
+
+    const ordered = [...(lessons || [])].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0)
+    );
+
+    const fromIndex = ordered.findIndex((lesson) => lesson._id === dragLessonId);
+    const toIndex = ordered.findIndex((lesson) => lesson._id === targetLessonId);
+
+    if (fromIndex < 0 || toIndex < 0) {
+      setDragLessonId(null);
+      setDragOverLessonId(null);
+      return;
+    }
+
+    const [movedLesson] = ordered.splice(fromIndex, 1);
+    ordered.splice(toIndex, 0, movedLesson);
+
+    await handlePersistLessonOrder(ordered);
+    setDragLessonId(null);
+    setDragOverLessonId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragLessonId(null);
+    setDragOverLessonId(null);
+  };
+
+  const orderedLessons = [...(lessons || [])].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0)
+  );
 
   const handleStartEditMaterial = (material) => {
     setEditingMaterialId(material._id);
@@ -601,17 +642,28 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
 
       {lessons && lessons.length > 0 ? (
         <div className="space-y-3">
-          {[...(lessons || [])]
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-            .map((lesson, index, orderedLessons) => (
-            <div key={lesson._id} className="border border-slate-200 rounded-lg overflow-hidden">
+          {orderedLessons.map((lesson, index) => (
+            <div
+              key={lesson._id}
+              className={`border rounded-lg overflow-hidden transition-colors ${
+                dragOverLessonId === lesson._id && dragLessonId !== lesson._id
+                  ? 'border-brand-400 bg-brand-50/30'
+                  : 'border-slate-200'
+              }`}
+            >
               <div
                 className="w-full flex items-start justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer"
                 onClick={() =>
                   setExpandedLesson(expandedLesson === lesson._id ? null : lesson._id)
                 }
+                draggable
+                onDragStart={() => handleDragStart(lesson._id)}
+                onDragOver={(e) => handleDragOver(e, lesson._id)}
+                onDrop={(e) => void handleDrop(e, lesson._id)}
+                onDragEnd={handleDragEnd}
               >
                 <div className="flex items-start gap-3 flex-1 text-left">
+                  <GripVertical className="w-4 h-4 text-slate-400 flex-shrink-0 mt-1" />
                   <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded mt-0.5">
                     {index + 1}
                   </span>
@@ -626,28 +678,6 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleReorderLesson(lesson._id, 'up');
-                    }}
-                    disabled={loading || index === 0}
-                    className="text-slate-500 hover:text-brand-600 p-1 disabled:opacity-40"
-                    title="Move lesson up"
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleReorderLesson(lesson._id, 'down');
-                    }}
-                    disabled={loading || index === orderedLessons.length - 1}
-                    className="text-slate-500 hover:text-brand-600 p-1 disabled:opacity-40"
-                    title="Move lesson down"
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
