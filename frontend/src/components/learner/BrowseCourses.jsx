@@ -13,12 +13,14 @@ const BrowseCourses = () => {
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
   const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [courseEnrollmentCounts, setCourseEnrollmentCounts] = useState({});
   const userId = localStorage.getItem('userId');
 
   useEffect(() => {
     fetchCourses();
     fetchAllRatings();
     loadEnrolledCourses();
+    loadEnrollmentCounts();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -59,6 +61,34 @@ const BrowseCourses = () => {
     return enrolledCourses.includes(courseId);
   };
 
+  const loadEnrollmentCounts = async () => {
+    try {
+      const response = await fetch('https://dlcms-g6hp.onrender.com/api/enrollments/all');
+      if (!response.ok) {
+        setCourseEnrollmentCounts({});
+        return;
+      }
+
+      const enrollments = await response.json();
+      const counts = {};
+      enrollments.forEach((enrollment) => {
+        if (enrollment.status !== 'enrolled') return;
+        const courseId = enrollment.courseId?._id || enrollment.courseId;
+        if (!courseId) return;
+        counts[courseId] = (counts[courseId] || 0) + 1;
+      });
+
+      setCourseEnrollmentCounts(counts);
+    } catch (err) {
+      console.error('Error loading enrollment counts:', err);
+      setCourseEnrollmentCounts({});
+    }
+  };
+
+  const getRegisteredCount = (course) => {
+    return courseEnrollmentCounts[course._id] ?? course.students ?? 0;
+  };
+
   const handleEnroll = async (course) => {
     try {
       if (!userId) {
@@ -79,6 +109,10 @@ const BrowseCourses = () => {
       const enrollmentData = response.status === 409 ? null : await response.json();
 
       setEnrolledCourses((prev) => (prev.includes(course._id) ? prev : [...prev, course._id]));
+      setCourseEnrollmentCounts((prev) => ({
+        ...prev,
+        [course._id]: enrollmentData?.students ?? prev[course._id] ?? getRegisteredCount(course),
+      }));
       setCourses((prev) =>
         prev.map((item) =>
           item._id === course._id
@@ -120,7 +154,8 @@ const BrowseCourses = () => {
     await Promise.all([
       fetchCourses(),
       fetchAllRatings(),
-      loadEnrolledCourses()
+      loadEnrolledCourses(),
+      loadEnrollmentCounts(),
     ]);
   };
 
@@ -151,7 +186,7 @@ const BrowseCourses = () => {
           return (b.rating || 0) - (a.rating || 0);
         case 'popular':
         default:
-          return (b.students || 0) - (a.students || 0);
+          return getRegisteredCount(b) - getRegisteredCount(a);
       }
     });
 
@@ -350,7 +385,7 @@ const BrowseCourses = () => {
 
                   <div className="flex items-center gap-1 text-slate-600">
                     <Users className="w-4 h-4" />
-                    <span className="text-sm">{course.students || '0'}</span>
+                    <span className="text-sm">{getRegisteredCount(course)}</span>
                   </div>
 
                   <div className="flex items-center gap-1 text-slate-600">
