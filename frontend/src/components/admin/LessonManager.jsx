@@ -4,27 +4,49 @@ import { apiFetch } from '../../utils/api';
 
 const getYouTubeVideoId = (url) => {
   if (!url) return null;
-  
-  const cleanUrl = url.split('?')[0].split('#')[0];
-  
+
+  const normalized = String(url).trim();
+  const idPattern = /^[a-zA-Z0-9_-]{11}$/;
+
+  if (idPattern.test(normalized)) {
+    return normalized;
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    const host = parsed.hostname.replace('www.', '');
+
+    if (host === 'youtu.be') {
+      const shortId = parsed.pathname.split('/').filter(Boolean)[0];
+      return idPattern.test(shortId || '') ? shortId : null;
+    }
+
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      const vParam = parsed.searchParams.get('v');
+      if (idPattern.test(vParam || '')) return vParam;
+
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const markerIndex = parts.findIndex((part) => ['embed', 'shorts', 'live'].includes(part));
+      if (markerIndex >= 0) {
+        const candidate = parts[markerIndex + 1];
+        return idPattern.test(candidate || '') ? candidate : null;
+      }
+    }
+  } catch {
+    // Fall through to regex parsing for non-standard URLs.
+  }
+
   const patterns = [
     /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
     /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /^([a-zA-Z0-9_-]{11})$/
+    /(?:youtube\.com\/(?:embed|shorts|live)\/)([a-zA-Z0-9_-]{11})/,
   ];
-  
+
   for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match && match[1]) return match[1];
+    const match = normalized.match(pattern);
+    if (match?.[1]) return match[1];
   }
-  
-  const urlParams = new URLSearchParams(url.split('?')[1]);
-  const vParam = urlParams.get('v');
-  if (vParam && /^[a-zA-Z0-9_-]{11}$/.test(vParam)) {
-    return vParam;
-  }
-  
+
   return null;
 };
 
