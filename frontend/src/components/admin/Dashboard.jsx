@@ -59,7 +59,7 @@ const Dashboard = () => {
 
       const recent = reviewsData
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 5);
+        .slice(0, 3);
       setRecentReviews(recent);
 
       const courseEnrollmentMap = {};
@@ -74,7 +74,7 @@ const Dashboard = () => {
           enrollmentCount: courseEnrollmentMap[course._id] || 0
         }))
         .sort((a, b) => b.enrollmentCount - a.enrollmentCount)
-        .slice(0, 5);
+        .slice(0, 3);
 
       setTopCourses(topCoursesData);
     } catch (err) {

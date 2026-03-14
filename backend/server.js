@@ -128,6 +128,35 @@ const ensureAdminAccount = async () => {
   }
 }
 
+const recalculateCourseStats = async (courseId) => {
+  const [activeEnrollmentCount, reviewStats] = await Promise.all([
+    Enrollment.countDocuments({ courseId, status: "enrolled" }),
+    Review.aggregate([
+      { $match: { courseId: new mongoose.Types.ObjectId(courseId) } },
+      {
+        $group: {
+          _id: "$courseId",
+          averageRating: { $avg: "$rating" },
+          reviewCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ])
+
+  const stats = reviewStats[0] || { averageRating: 0, reviewCount: 0 }
+
+  await Course.updateOne(
+    { _id: courseId },
+    {
+      $set: {
+        students: activeEnrollmentCount,
+        rating: Number(stats.averageRating || 0),
+        reviews: Number(stats.reviewCount || 0),
+      },
+    }
+  )
+}
+
 mongoose
   .connect(MONGO_URI)
   .then(async () => {
@@ -400,11 +429,26 @@ app.delete("/api/admin/users/:id", authenticateToken, authorizeAdmin, async (req
         return res.status(403).json({ message: "Cannot delete the last admin user" })
       }
     }
+
+    const [userEnrollments, userReviews] = await Promise.all([
+      Enrollment.find({ userId: id }).select("courseId"),
+      Review.find({ userId: id }).select("courseId"),
+    ])
+
+    const affectedCourseIds = [...new Set([
+      ...userEnrollments.map((enrollment) => enrollment.courseId?.toString()).filter(Boolean),
+      ...userReviews.map((review) => review.courseId?.toString()).filter(Boolean),
+    ])]
     
     const deletedUser = await User.findByIdAndDelete(id)
-    
-    await Enrollment.deleteMany({ userId: id })
-    await Review.deleteMany({ userId: id })
+
+    await Promise.all([
+      Enrollment.deleteMany({ userId: id }),
+      Review.deleteMany({ userId: id }),
+      Course.updateMany({ createdBy: id }, { $unset: { createdBy: 1 } }),
+    ])
+
+    await Promise.all(affectedCourseIds.map((courseId) => recalculateCourseStats(courseId)))
     
     console.log(`✅ User deleted: ${deletedUser.name} (${deletedUser.email})`)
     res.json({ message: "User deleted successfully" })
