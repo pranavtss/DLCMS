@@ -32,67 +32,40 @@ const Reviews = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
+  const getCompletedLessonCount = (enrollment) => {
+    const lessons = Array.isArray(enrollment?.courseId?.lessons) ? enrollment.courseId.lessons : [];
+    const completedLessonsMap = enrollment?.completedLessons || {};
+
+    return lessons.filter((lesson) => Boolean(completedLessonsMap[lesson._id])).length;
+  };
+
+  const isEnrollmentCompleted = (enrollment) => {
+    const lessons = Array.isArray(enrollment?.courseId?.lessons) ? enrollment.courseId.lessons : [];
+    if (lessons.length === 0) return false;
+
+    return getCompletedLessonCount(enrollment) === lessons.length;
+  };
+
   const loadCompletedCourses = async () => {
     try {
       const userId = localStorage.getItem('userId');
       if (!userId) {
-        console.warn('⚠️  userId not found in localStorage');
         setCompletedCourses([]);
         return;
       }
 
-      console.log('📥 Fetching completed courses from backend for userId:', userId);
-      
-      const [completedResponse, reviewsResponse, coursesResponse] = await Promise.all([
-        fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/completed/${userId}`),
-        fetch(`https://dlcms-g6hp.onrender.com/api/reviews/user/${userId}`),
-        fetch('https://dlcms-g6hp.onrender.com/api/courses')
-      ]);
-
-      let completedCourses = [];
-      let completedCourseIds = new Set();
-
-      if (completedResponse.ok) {
-        const completedData = await completedResponse.json();
-        const courses = completedData.map(enrollment => enrollment.courseId).filter(Boolean);
-        completedCourses = courses;
-        courses.forEach(c => completedCourseIds.add(c._id));
-        console.log('✅ Completed courses from enrollments:', courses);
+      const response = await fetch(`https://dlcms-g6hp.onrender.com/api/enrollments/user/${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch enrollments');
       }
 
-      if (reviewsResponse.ok) {
-        const reviews = await reviewsResponse.json();
-        reviews.forEach(review => {
-          if (review.courseId?._id) {
-            completedCourseIds.add(review.courseId._id);
-          }
-        });
-        console.log('✅ Reviewed course IDs:', Array.from(completedCourseIds));
-      }
+      const enrollments = await response.json();
+      const completedCoursesData = enrollments
+        .filter((enrollment) => isEnrollmentCompleted(enrollment))
+        .map((enrollment) => enrollment.courseId)
+        .filter(Boolean);
 
-      let allCourses = [];
-      if (coursesResponse.ok) {
-        allCourses = await coursesResponse.json();
-        
-        allCourses.forEach(course => {
-          const completedData = JSON.parse(localStorage.getItem(`course_${course._id}_completed`) || '{}');
-          const completedCount = Object.values(completedData).filter(Boolean).length;
-          const totalLessons = course.lessons?.length || 0;
-          
-          if (totalLessons > 0 && completedCount === totalLessons) {
-            completedCourseIds.add(course._id);
-            console.log(`✅ Course ${course.title} is 100% complete (${completedCount}/${totalLessons})`);
-          }
-        });
-        
-        const completedCoursesData = allCourses.filter(
-          course => completedCourseIds.has(course._id)
-        );
-        completedCourses = completedCoursesData;
-        console.log('✅ Final completed courses with full data:', completedCoursesData);
-      }
-
-      setCompletedCourses(completedCourses);
+      setCompletedCourses(completedCoursesData);
     } catch (err) {
       console.error('Error loading completed courses:', err);
       setCompletedCourses([]);
@@ -103,21 +76,17 @@ const Reviews = () => {
     try {
       const userId = localStorage.getItem('userId');
       if (!userId) {
-        console.warn('⚠️  userId not found in localStorage');
         setMyReviews([]);
         return;
       }
 
-      console.log('📥 Fetching reviews for userId:', userId);
       const response = await fetch(`https://dlcms-g6hp.onrender.com/api/reviews/user/${userId}`);
       
       if (!response.ok) {
-        console.error('❌ Failed to fetch reviews. Status:', response.status);
         throw new Error('Failed to fetch reviews');
       }
       
       const reviews = await response.json();
-      console.log('✅ Reviews loaded:', reviews);
       setMyReviews(reviews);
     } catch (err) {
       console.error('Error loading reviews:', err);
@@ -159,8 +128,7 @@ const Reviews = () => {
         throw new Error(error.message || 'Failed to submit review');
       }
 
-      const result = await response.json();
-      console.log('✅ Review submitted successfully:', result);
+      await response.json();
       
       await new Promise(resolve => setTimeout(resolve, 300));
       await loadMyReviews();
@@ -244,7 +212,7 @@ const Reviews = () => {
   };
 
   const hasReviewed = (courseId) => {
-    return myReviews.some(review => review.courseId?._id === courseId);
+    return myReviews.some((review) => (review.courseId?._id || review.courseId) === courseId);
   };
 
   return (
@@ -266,7 +234,7 @@ const Reviews = () => {
           <div className="flex flex-wrap gap-4">
             {completedCourses.map((course) => {
               const reviewed = hasReviewed(course._id);
-              const review = myReviews.find(r => r.courseId?._id === course._id);
+              const review = myReviews.find((r) => (r.courseId?._id || r.courseId) === course._id);
               
               return (
                 <div

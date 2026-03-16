@@ -103,11 +103,20 @@ const LearnerCourseDetailPage = () => {
   const [unenrolling, setUnenrolling] = useState(false);
   const [completedLessons, setCompletedLessons] = useState({});
 
+  const getCompletedLessonCount = (lessons = [], completedMap = {}) => {
+    return lessons.filter((lesson) => Boolean(completedMap[lesson._id])).length;
+  };
+
+  const getProgressPercentage = (lessons = [], completedMap = {}) => {
+    if (!Array.isArray(lessons) || lessons.length === 0) return 0;
+    const completedCount = getCompletedLessonCount(lessons, completedMap);
+    return Math.round((completedCount / lessons.length) * 100);
+  };
+
   useEffect(() => {
     fetchCourseDetails();
     checkEnrollmentStatus();
     loadCompletionStatus();
-    syncCompletionPercentage();
   }, [courseId]);
 
   const loadCompletionStatus = () => {
@@ -117,23 +126,28 @@ const LearnerCourseDetailPage = () => {
 
   const syncCompletionPercentage = async () => {
     try {
-      if (!userId) return;
+      if (!userId || !course?.lessons?.length) return;
 
       const completed = JSON.parse(localStorage.getItem(`course_${courseId}_completed`) || '{}');
-      
-      for (const [lessonId, isCompleted] of Object.entries(completed)) {
-        if (isCompleted) {
-          await fetch('https://dlcms-g6hp.onrender.com/api/enrollments/progress', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, courseId, lessonId, completed: true })
-          });
-        }
+
+      for (const lesson of course.lessons) {
+        const lessonId = lesson._id;
+        const isCompleted = Boolean(completed[lessonId]);
+
+        await fetch('https://dlcms-g6hp.onrender.com/api/enrollments/progress', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, courseId, lessonId, completed: isCompleted })
+        });
       }
     } catch (err) {
       console.error('Error syncing completion:', err);
     }
   };
+
+  useEffect(() => {
+    syncCompletionPercentage();
+  }, [course, courseId]);
 
   const toggleLessonCompletion = async (lessonId) => {
     const newCompleted = { ...completedLessons, [lessonId]: !completedLessons[lessonId] };
@@ -143,7 +157,7 @@ const LearnerCourseDetailPage = () => {
     try {
       if (!userId) return;
 
-      await fetch('https://dlcms-g6hp.onrender.com/api/enrollments/progress', {
+      const response = await fetch('https://dlcms-g6hp.onrender.com/api/enrollments/progress', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,6 +167,10 @@ const LearnerCourseDetailPage = () => {
           completed: newCompleted[lessonId]
         })
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update progress');
+      }
     } catch (err) {
       console.error('Error updating completion:', err);
     }
@@ -353,14 +371,14 @@ const LearnerCourseDetailPage = () => {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-slate-700">PROGRESS</span>
                   <span className="text-sm font-bold text-slate-900">
-                    {Math.round((Object.values(completedLessons).filter(Boolean).length / (course.lessons?.length || 1)) * 100)}%
+                    {getProgressPercentage(course.lessons, completedLessons)}%
                   </span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-2">
                   <div 
                     className="bg-orange-500 h-2 rounded-full transition-all duration-300"
                     style={{ 
-                      width: `${(Object.values(completedLessons).filter(Boolean).length / (course.lessons?.length || 1)) * 100}%` 
+                      width: `${getProgressPercentage(course.lessons, completedLessons)}%`
                     }}
                   ></div>
                 </div>

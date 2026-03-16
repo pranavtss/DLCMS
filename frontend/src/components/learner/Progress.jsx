@@ -20,6 +20,23 @@ const Progress = () => {
     loadProgress();
   }, []);
 
+  const getCompletedLessonCount = (enrollment) => {
+    const course = enrollment?.courseId;
+    const lessons = Array.isArray(course?.lessons) ? course.lessons : [];
+    const completedLessonsMap = enrollment?.completedLessons || {};
+
+    return lessons.filter((lesson) => Boolean(completedLessonsMap[lesson._id])).length;
+  };
+
+  const getEnrollmentProgress = (enrollment) => {
+    const course = enrollment?.courseId;
+    const totalLessons = Array.isArray(course?.lessons) ? course.lessons.length : 0;
+    if (totalLessons === 0) return 0;
+
+    const completedCount = getCompletedLessonCount(enrollment);
+    return Math.round((completedCount / totalLessons) * 100);
+  };
+
   const loadProgress = async () => {
     try {
       setLoading(true);
@@ -57,7 +74,7 @@ const Progress = () => {
       setEnrollments(combinedEnrollments);
 
       const totalCourses = combinedEnrollments.length;
-      const completedCourses = combinedEnrollments.filter(e => e.completionPercentage === 100).length;
+      const completedCourses = combinedEnrollments.filter((enrollment) => getEnrollmentProgress(enrollment) === 100).length;
       const inProgressCourses = totalCourses - completedCourses;
       
       let totalLessons = 0;
@@ -67,14 +84,12 @@ const Progress = () => {
         const course = enrollment.courseId;
         if (course && course.lessons) {
           totalLessons += course.lessons.length;
-          const completedLessonsMap = enrollment.completedLessons || {};
-          const completed = Object.values(completedLessonsMap).filter(Boolean).length;
-          completedLessons += completed;
+          completedLessons += getCompletedLessonCount(enrollment);
         }
       });
 
       const averageProgress = totalCourses > 0
-        ? Math.round(combinedEnrollments.reduce((sum, e) => sum + (e.completionPercentage || 0), 0) / totalCourses)
+        ? Math.round(combinedEnrollments.reduce((sum, enrollment) => sum + getEnrollmentProgress(enrollment), 0) / totalCourses)
         : 0;
 
       setStats({
@@ -100,8 +115,8 @@ const Progress = () => {
     return 'bg-red-500';
   };
 
-  const inProgressCourses = enrollments.filter(e => e.completionPercentage < 100);
-  const completedCourses = enrollments.filter(e => e.completionPercentage === 100);
+  const inProgressCourses = enrollments.filter((enrollment) => getEnrollmentProgress(enrollment) < 100);
+  const completedCourses = enrollments.filter((enrollment) => getEnrollmentProgress(enrollment) === 100);
 
   if (loading) {
     return (
@@ -231,10 +246,9 @@ const Progress = () => {
                   const course = enrollment.courseId;
                   if (!course) return null;
 
-                  const completedLessonsMap = enrollment.completedLessons || {};
-                  const completedCount = Object.values(completedLessonsMap).filter(Boolean).length;
+                  const completedCount = getCompletedLessonCount(enrollment);
                   const totalLessons = course.lessons?.length || 0;
-                  const progress = enrollment.completionPercentage || 0;
+                  const progress = getEnrollmentProgress(enrollment);
 
                   return (
                     <div
