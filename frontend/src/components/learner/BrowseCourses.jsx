@@ -321,7 +321,7 @@ const BrowseCourses = () => {
               <div className="relative h-48 bg-gradient-to-br from-brand-500 to-brand-700 overflow-hidden">
                 <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity"></div>
                 {course.thumbnail ? (
-                  <img src={getImageUrl(course.thumbnail)} alt={course.title} className="w-full h-full object-cover" />
+                  <img src={getImageUrl(course.thumbnail)} alt={course.title} className="w-full h-full object-contain bg-white/90" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <BookOpen className="w-16 h-16 text-white opacity-50" />

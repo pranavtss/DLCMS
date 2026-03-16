@@ -232,7 +232,7 @@ const CourseDetailPage = () => {
                         <img 
                           src={imagePreview} 
                           alt="Course preview" 
-                          className="w-48 h-32 object-cover rounded border border-slate-300"
+                          className="w-48 h-32 object-contain bg-slate-100 rounded border border-slate-300"
                         />
                         <button
                           type="button"
@@ -350,7 +350,7 @@ const CourseDetailPage = () => {
                 <img 
                   src={getImageUrl(course.thumbnail)} 
                   alt={course.title}
-                  className="w-32 h-32 object-cover rounded-lg border border-slate-200"
+                  className="w-32 h-32 object-contain bg-slate-100 rounded-lg border border-slate-200"
                 />
               ) : (
                 <div className="w-32 h-32 bg-gradient-to-br from-brand-500 to-brand-700 rounded-lg flex items-center justify-center">

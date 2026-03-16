@@ -159,7 +159,7 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
                   <img
                     src={imagePreview || getImageUrl(formData.thumbnail)}
                     alt="Course preview"
-                    className="w-full h-48 object-cover rounded-lg"
+                    className="w-full h-48 object-contain bg-slate-100 rounded-lg"
                   />
                   <button
                     type="button"

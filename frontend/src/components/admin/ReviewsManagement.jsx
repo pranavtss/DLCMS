@@ -180,7 +180,7 @@ const ReviewsManagement = () => {
                         <img 
                           src={getImageUrl(course.thumbnail)} 
                           alt={course.title} 
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain bg-white/90"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

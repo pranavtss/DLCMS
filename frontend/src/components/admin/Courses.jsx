@@ -179,7 +179,7 @@ const Courses = () => {
                   <img
                     src={getImageUrl(course.thumbnail)}
                     alt={course.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain bg-white/90"
                   />
                 ) : (
                   <BookOpen className="w-12 h-12 text-white opacity-50" />

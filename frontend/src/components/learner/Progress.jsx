@@ -248,7 +248,7 @@ const Progress = () => {
                             <img
                               src={getImageUrl(course.thumbnail)}
                               alt={course.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain bg-white/90"
                             />
                           ) : (
                             <BookOpen className="w-10 h-10 text-white" />
@@ -322,7 +322,7 @@ const Progress = () => {
                           <img
                             src={getImageUrl(course.thumbnail)}
                             alt={course.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain bg-white/90"
                           />
                         ) : (
                           <BookOpen className="w-14 h-14 text-white opacity-40" />
