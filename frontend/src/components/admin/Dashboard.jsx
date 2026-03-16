@@ -59,7 +59,7 @@ const Dashboard = () => {
 
       const recent = reviewsData
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 3);
+        .slice(0, 2);
       setRecentReviews(recent);
 
       const courseEnrollmentMap = {};
