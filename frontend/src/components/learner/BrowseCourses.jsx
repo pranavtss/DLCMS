@@ -11,6 +11,7 @@ const BrowseCourses = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [courseEnrollmentCounts, setCourseEnrollmentCounts] = useState({});
@@ -176,6 +177,12 @@ const BrowseCourses = () => {
       );
     }
 
+    if (selectedCategory !== 'all') {
+      result = result.filter((course) =>
+        course.category?.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
+
     result.sort((a, b) => {
       switch (sortBy) {
         case 'newest':
@@ -191,7 +198,7 @@ const BrowseCourses = () => {
     });
 
     setFilteredCourses(result);
-  }, [courses, searchQuery, selectedLevel, sortBy]);
+  }, [courses, searchQuery, selectedLevel, selectedCategory, sortBy]);
 
   const fetchAllRatings = async () => {
     try {
@@ -224,6 +231,16 @@ const BrowseCourses = () => {
   };
 
   const levels = ['All Levels', 'Beginner', 'Intermediate', 'Advanced'];
+  const categories = [
+    'All Categories',
+    ...Array.from(
+      new Set(
+        courses
+          .map((course) => course.category)
+          .filter(Boolean)
+      )
+    ),
+  ];
 
   return (
     <div>
@@ -238,7 +255,7 @@ const BrowseCourses = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_220px] gap-4 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_220px_220px] gap-4 items-center">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
@@ -264,6 +281,21 @@ const BrowseCourses = () => {
               ))}
             </select>
           </div>
+
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full h-12 px-4 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
+          >
+            {categories.map((category) => (
+              <option
+                key={category}
+                value={category === 'All Categories' ? 'all' : category}
+              >
+                {category}
+              </option>
+            ))}
+          </select>
 
           <select
             value={sortBy}
