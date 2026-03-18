@@ -969,6 +969,7 @@ app.post("/api/reviews", async (req, res) => {
       existingReview.rating = rating
       existingReview.comment = comment
       await existingReview.save()
+      await recalculateCourseStats(courseId)
       console.log(`✅ Review updated for course: ${course.title}`)
       return res.json({ message: "Review updated successfully", review: existingReview })
     }
@@ -981,6 +982,7 @@ app.post("/api/reviews", async (req, res) => {
       comment,
     })
 
+    await recalculateCourseStats(courseId)
     console.log(`✅ Review created for course: ${course.title}`)
     res.status(201).json({ message: "Review submitted successfully", review })
   } catch (error) {
@@ -1061,6 +1063,7 @@ app.delete("/api/reviews/:reviewId", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Review not found" })
     }
 
+    await recalculateCourseStats(review.courseId)
     console.log("✅ Review deleted", {
       reviewId,
       deletedBy: req.user?.email,
