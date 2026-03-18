@@ -132,6 +132,9 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
   const guessMaterialType = (mimeType) => {
     if (!mimeType) return 'other';
     if (mimeType.includes('pdf')) return 'pdf';
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint') || mimeType.includes('vnd.ms-powerpoint')) {
+      return 'ppt';
+    }
     if (mimeType.includes('word') || mimeType.includes('officedocument') || mimeType.includes('msword')) {
       return 'doc';
     }
@@ -605,6 +608,7 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
             >
               <option value="pdf">PDF</option>
               <option value="doc">Document</option>
+              <option value="ppt">PPT</option>
               <option value="image">Image</option>
               <option value="video">Video</option>
               <option value="other">Other</option>
@@ -918,6 +922,7 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                         >
                           <option value="pdf">PDF</option>
                           <option value="doc">Document</option>
+                          <option value="ppt">PPT</option>
                           <option value="image">Image</option>
                           <option value="video">Video</option>
                           <option value="other">Other</option>
@@ -987,6 +992,7 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                                 >
                                   <option value="pdf">PDF</option>
                                   <option value="doc">Document</option>
+                                  <option value="ppt">PPT</option>
                                   <option value="image">Image</option>
                                   <option value="video">Video</option>
                                   <option value="other">Other</option>

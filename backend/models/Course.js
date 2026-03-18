@@ -4,7 +4,7 @@ const materialSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     url: { type: String, required: true },
-    type: { type: String, enum: ["pdf", "doc", "image", "video", "other"], default: "pdf" },
+    type: { type: String, enum: ["pdf", "doc", "ppt", "image", "video", "other"], default: "pdf" },
   },
   { _id: true }
 )
