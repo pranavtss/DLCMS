@@ -670,14 +670,28 @@ app.delete("/api/courses/:id", authenticateToken, authorizeAdmin, async (req, re
   try {
     const { id } = req.params
     const query = req.user.isMasterAdmin ? { _id: id } : { _id: id, createdBy: req.user.userId }
-    const course = await Course.findOneAndDelete(query)
+    const course = await Course.findOne(query).select("_id title")
     
     if (!course) {
       return res.status(404).json({ message: "Course not found" })
     }
+
+    const [enrollmentCleanup, reviewCleanup] = await Promise.all([
+      Enrollment.deleteMany({ courseId: course._id }),
+      Review.deleteMany({ courseId: course._id }),
+    ])
+
+    await Course.deleteOne({ _id: course._id })
     
-    console.log(`✅ Course deleted: ${course.title}`)
-    res.json({ message: "Course deleted successfully" })
+    console.log(`✅ Course deleted: ${course.title}`, {
+      deletedEnrollments: enrollmentCleanup.deletedCount || 0,
+      deletedReviews: reviewCleanup.deletedCount || 0,
+    })
+    res.json({
+      message: "Course and related data deleted successfully",
+      deletedEnrollments: enrollmentCleanup.deletedCount || 0,
+      deletedReviews: reviewCleanup.deletedCount || 0,
+    })
   } catch (error) {
     res.status(500).json({ message: "Failed to delete course", error: error.message })
   }
