@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users as UsersIcon, UserCheck, UserX, Mail, Calendar, Trash2, Eye } from 'lucide-react';
+import { Users as UsersIcon, UserCheck, UserX, Mail, Calendar, Trash2, Eye, UserPlus, KeyRound, ShieldCheck } from 'lucide-react';
 import SearchBar from '../common/SearchBar';
 import { apiFetch } from '../../utils/api';
 
@@ -19,6 +19,7 @@ const Users = () => {
   });
   const [createLoading, setCreateLoading] = useState(false);
   const [createMessage, setCreateMessage] = useState('');
+  const [createMessageType, setCreateMessageType] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -58,12 +59,14 @@ const Users = () => {
 
     if (!createForm.name || !createForm.email || !createForm.password) {
       setCreateMessage('Please fill name, email, and password.');
+      setCreateMessageType('error');
       return;
     }
 
     try {
       setCreateLoading(true);
       setCreateMessage('');
+      setCreateMessageType('');
 
       const response = await apiFetch('/api/admin/users', {
         method: 'POST',
@@ -73,14 +76,17 @@ const Users = () => {
       const data = await response.json();
       if (!response.ok) {
         setCreateMessage(data.message || 'Failed to create user');
+        setCreateMessageType('error');
         return;
       }
 
       setCreateForm({ name: '', email: '', password: '', role: 'Learner' });
       setCreateMessage('User created successfully.');
+      setCreateMessageType('success');
       await fetchUsers();
     } catch (error) {
       setCreateMessage('Failed to create user');
+      setCreateMessageType('error');
     } finally {
       setCreateLoading(false);
     }
@@ -139,48 +145,93 @@ const Users = () => {
       </div>
 
       {isMasterAdmin && (
-        <form onSubmit={handleCreateUser} className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Add User Manually</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <input
-              type="text"
-              placeholder="Full name"
-              value={createForm.name}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <input
-              type="email"
-              placeholder="Email address"
-              value={createForm.email}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={createForm.password}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <select
-              value={createForm.role}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            >
-              <option value="Learner">Learner</option>
-              <option value="Admin">Admin</option>
-            </select>
+        <form onSubmit={handleCreateUser} className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                <UserPlus className="h-5 w-5 text-teal-600" />
+                Add User Manually
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">Create learner or admin accounts directly from master dashboard.</p>
+            </div>
           </div>
-          <div className="mt-4 flex items-center gap-3">
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Full Name
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5">
+                <UserCheck className="h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="e.g. Asha Verma"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Email Address
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5">
+                <Mail className="h-4 w-4 text-slate-400" />
+                <input
+                  type="email"
+                  placeholder="name@dlcms.ac.in"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
+                  className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Temporary Password
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5">
+                <KeyRound className="h-4 w-4 text-slate-400" />
+                <input
+                  type="password"
+                  placeholder="Set initial password"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
+                  className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
+                />
+              </div>
+            </label>
+
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Role
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5">
+                <ShieldCheck className="h-4 w-4 text-slate-400" />
+                <select
+                  value={createForm.role}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}
+                  className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
+                >
+                  <option value="Learner">Learner</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              </div>
+            </label>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="submit"
               disabled={createLoading}
-              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+              className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
             >
               {createLoading ? 'Creating...' : 'Create User'}
             </button>
-            {createMessage && <p className="text-sm text-slate-600">{createMessage}</p>}
+            {createMessage && (
+              <p className={`rounded-lg px-3 py-2 text-sm ${
+                createMessageType === 'success'
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-red-50 text-red-700'
+              }`}>
+                {createMessage}
+              </p>
+            )}
           </div>
         </form>
       )}

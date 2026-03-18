@@ -145,15 +145,34 @@ const LoginForm = () => {
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
           Login As
-          <select
-            name="accountType"
-            value={formState.accountType}
-            onChange={handleChange}
-            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none"
-          >
-            <option value="Learner">Learner</option>
-            <option value="Admin">Admin</option>
-          </select>
+          <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setFormState((prev) => ({ ...prev, accountType: "Learner" }))}
+                className={`rounded-xl px-3 py-2 text-left transition-all ${
+                  formState.accountType === "Learner"
+                    ? "bg-white text-brand-700 shadow-sm ring-1 ring-brand-200"
+                    : "text-slate-600 hover:bg-white"
+                }`}
+              >
+                <p className="text-sm font-semibold">Learner</p>
+                <p className="text-[11px] text-slate-500">Browse and learn</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormState((prev) => ({ ...prev, accountType: "Admin" }))}
+                className={`rounded-xl px-3 py-2 text-left transition-all ${
+                  formState.accountType === "Admin"
+                    ? "bg-white text-brand-700 shadow-sm ring-1 ring-brand-200"
+                    : "text-slate-600 hover:bg-white"
+                }`}
+              >
+                <p className="text-sm font-semibold">Admin</p>
+                <p className="text-[11px] text-slate-500">Manage courses</p>
+              </button>
+            </div>
+          </div>
         </label>
 
         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
