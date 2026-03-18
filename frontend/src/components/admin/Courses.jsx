@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, Trash2, Edit2, Users } from 'lucide-react';
+import { Plus, BookOpen, Trash2, Edit2, Users, Filter, Search } from 'lucide-react';
 import CourseForm from './CourseForm';
-import SearchBar from '../common/SearchBar';
 import { apiFetch, getImageUrl } from '../../utils/api';
 
 const Courses = () => {
@@ -14,6 +13,9 @@ const Courses = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('all-levels');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
     fetchCourses();
@@ -92,12 +94,49 @@ const Courses = () => {
     }
   };
 
+  const filteredCourses = [...courses]
+    .filter((course) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        course.title?.toLowerCase().includes(query) ||
+        course.instructor?.toLowerCase().includes(query) ||
+        course.category?.toLowerCase().includes(query);
+
+      const matchesLevel =
+        selectedLevel === 'all-levels' ||
+        (course.level || '').toLowerCase() === selectedLevel.replace('-', ' ');
+
+      const matchesCategory =
+        selectedCategory === 'all' ||
+        (course.category || '').toLowerCase() === selectedCategory.toLowerCase();
+
+      return matchesSearch && matchesLevel && matchesCategory;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'title') {
+        return (a.title || '').localeCompare(b.title || '');
+      }
+      if (sortBy === 'popular') {
+        return (b.students || 0) - (a.students || 0);
+      }
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+
+  const levels = ['All Levels', 'Beginner', 'Intermediate', 'Advanced'];
+  const categories = [
+    'All Categories',
+    ...Array.from(new Set(courses.map((course) => course.category).filter(Boolean))),
+  ];
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Courses</h1>
           <p className="text-slate-600 mt-1">Create and manage your courses</p>
+        </div>
+        <div className="text-sm text-slate-500">
+          {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'}
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -129,12 +168,60 @@ const Courses = () => {
       )}
 
       {!loading && courses.length > 0 && (
-        <SearchBar
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search courses by title, instructor, or category..."
-          containerClassName="mb-8"
-        />
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(420px,2fr)_170px_170px_170px] gap-3 items-center">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search courses by title, instructor, or category..."
+                className="w-full h-11 pl-12 pr-4 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
+              />
+            </div>
+
+            <div className="relative">
+              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+              <select
+                value={selectedLevel}
+                onChange={(e) => setSelectedLevel(e.target.value)}
+                className="w-full h-11 pl-12 pr-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
+              >
+                {levels.map((level) => (
+                  <option key={level} value={level.toLowerCase().replace(' ', '-')}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full h-11 px-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
+            >
+              {categories.map((category) => (
+                <option
+                  key={category}
+                  value={category === 'All Categories' ? 'all' : category}
+                >
+                  {category}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full h-11 px-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
+            >
+              <option value="newest">Newest First</option>
+              <option value="popular">Most Popular</option>
+              <option value="title">Title A-Z</option>
+            </select>
+          </div>
+        </div>
       )}
 
       {!loading && courses.length === 0 ? (
@@ -151,11 +238,7 @@ const Courses = () => {
         </div>
       ) : (
         <>
-          {courses.filter(course =>
-            course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            course.instructor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            course.category?.toLowerCase().includes(searchQuery.toLowerCase())
-          ).length === 0 ? (
+          {filteredCourses.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-16 text-center">
               <div className="w-24 h-24 bg-gradient-to-br from-brand-100 to-brand-200 rounded-full flex items-center justify-center mx-auto mb-6">
                 <BookOpen className="w-12 h-12 text-brand-600" />
@@ -169,11 +252,7 @@ const Courses = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.filter(course =>
-                course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                course.instructor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                course.category?.toLowerCase().includes(searchQuery.toLowerCase())
-              ).map((course) => (
+              {filteredCourses.map((course) => (
             <div
               key={course._id}
               className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
