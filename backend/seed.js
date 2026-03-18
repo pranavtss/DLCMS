@@ -10,7 +10,7 @@ async function seedAdmin() {
     await mongoose.connect(MONGO_URI)
     console.log("MongoDB connected")
 
-    const adminEmail = "admin@dlcms"
+    const adminEmail = "admin@dlcms.ac.in"
     const existing = await User.findOne({ email: adminEmail })
     
     if (existing) {
@@ -24,10 +24,11 @@ async function seedAdmin() {
       email: adminEmail,
       password: hashed,
       role: "Admin",
+      type: "email",
     })
 
     console.log("Admin account created successfully")
-    console.log("Email: admin@dlcms")
+    console.log("Email: admin@dlcms.ac.in")
     console.log("Password: admin")
     process.exit(0)
   } catch (error) {
