@@ -7,6 +7,8 @@ import { apiFetch, getImageUrl } from '../../utils/api';
 
 const Courses = () => {
   const navigate = useNavigate();
+  const currentUserName = localStorage.getItem('userName') || 'Admin';
+  const isMasterAdmin = localStorage.getItem('userIsMasterAdmin') === 'true';
   const [showForm, setShowForm] = useState(false);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -110,6 +112,8 @@ const Courses = () => {
         isOpen={showForm}
         onClose={() => setShowForm(false)}
         onSubmit={handleCreateCourse}
+        defaultInstructor={currentUserName}
+        instructorReadOnly={!isMasterAdmin}
       />
 
       {error && (

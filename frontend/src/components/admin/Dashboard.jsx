@@ -3,6 +3,7 @@ import { BookOpen, Users, Star, TrendingUp, Clock, AlertCircle } from 'lucide-re
 import { apiFetch } from '../../utils/api';
 
 const Dashboard = () => {
+  const isMasterAdmin = localStorage.getItem('userIsMasterAdmin') === 'true';
   const [stats, setStats] = useState({
     totalCourses: 0,
     totalUsers: 0,
@@ -26,7 +27,7 @@ const Dashboard = () => {
       
       const [coursesRes, usersRes, enrollmentsRes, reviewsRes] = await Promise.all([
         apiFetch('/api/admin/courses'),
-        apiFetch('/api/admin/users'),
+        isMasterAdmin ? apiFetch('/api/admin/users') : Promise.resolve(null),
         apiFetch('/api/enrollments/all'),
         apiFetch('/api/admin/reviews')
       ]);
@@ -37,7 +38,7 @@ const Dashboard = () => {
       let reviewsData = [];
 
       if (coursesRes.ok) coursesData = await coursesRes.json();
-      if (usersRes.ok) usersData = await usersRes.json();
+      if (usersRes?.ok) usersData = await usersRes.json();
       if (enrollmentsRes.ok) enrollmentsData = await enrollmentsRes.json();
       if (reviewsRes.ok) reviewsData = await reviewsRes.json();
 
@@ -117,11 +118,13 @@ const Dashboard = () => {
       <div className="mb-8">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Dashboard</h1>
-          <p className="text-slate-600 mt-1">Overview of your learning management system</p>
+          <p className="text-slate-600 mt-1">
+            {isMasterAdmin ? 'Overview of your learning management system' : 'Overview of your courses and learners'}
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${isMasterAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6 mb-8`}>
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -134,18 +137,20 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600 mb-1">Total Users</p>
-              <p className="text-3xl font-bold text-slate-900">{stats.totalUsers}</p>
-              <p className="text-xs text-slate-500 mt-1">{stats.learners} learners, {stats.admins} admins</p>
-            </div>
-            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-teal-600" />
+        {isMasterAdmin && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-600 mb-1">Total Users</p>
+                <p className="text-3xl font-bold text-slate-900">{stats.totalUsers}</p>
+                <p className="text-xs text-slate-500 mt-1">{stats.learners} learners, {stats.admins} admins</p>
+              </div>
+              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-teal-600" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between">
@@ -255,8 +260,15 @@ const Dashboard = () => {
           <div>
             <h3 className="font-semibold text-slate-900 mb-1">System Overview</h3>
             <p className="text-sm text-slate-700">
-              Your DLCMS is running smoothly with <strong>{stats.totalCourses}</strong> courses, 
-              <strong> {stats.totalUsers}</strong> users, and <strong> {stats.totalEnrollments}</strong> active enrollments.
+              {isMasterAdmin
+                ? <>
+                    Your DLCMS is running smoothly with <strong>{stats.totalCourses}</strong> courses,
+                    <strong> {stats.totalUsers}</strong> users, and <strong> {stats.totalEnrollments}</strong> active enrollments.
+                  </>
+                : <>
+                    Your admin workspace currently has <strong>{stats.totalCourses}</strong> courses and
+                    <strong> {stats.totalEnrollments}</strong> enrollments.
+                  </>}
             </p>
           </div>
         </div>

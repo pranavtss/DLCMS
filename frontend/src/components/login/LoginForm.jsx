@@ -8,6 +8,7 @@ const LoginForm = () => {
   const googleButtonRef = useRef(null)
   const [showPassword, setShowPassword] = useState(false)
   const [formState, setFormState] = useState({
+    accountType: "Learner",
     email: "",
     password: "",
     remember: false,
@@ -33,6 +34,7 @@ const LoginForm = () => {
       localStorage.setItem("userName", data.name || "User")
       localStorage.setItem("userRole", data.role)
       localStorage.setItem("authToken", data.token || "")
+      localStorage.setItem("userIsMasterAdmin", data.isMasterAdmin ? "true" : "false")
 
       const target = data.role === "Admin" ? "/admin" : "/learner"
       navigate(target)
@@ -100,7 +102,11 @@ const LoginForm = () => {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formState.email.toLowerCase(), password: formState.password }),
+        body: JSON.stringify({
+          email: formState.email.toLowerCase(),
+          password: formState.password,
+          accountType: formState.accountType,
+        }),
       })
       
       console.log('✓ Response status:', response.status)
@@ -118,6 +124,7 @@ const LoginForm = () => {
       localStorage.setItem('userName', data.name || 'User')
       localStorage.setItem('userRole', data.role)
       localStorage.setItem('authToken', data.token || '')
+      localStorage.setItem('userIsMasterAdmin', data.isMasterAdmin ? 'true' : 'false')
       
       console.log('✅ Redirecting to:', data.role === "Admin" ? "/admin" : "/learner")
       const target = data.role === "Admin" ? "/admin" : "/learner"
@@ -136,6 +143,19 @@ const LoginForm = () => {
       </div>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Login As
+          <select
+            name="accountType"
+            value={formState.accountType}
+            onChange={handleChange}
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none"
+          >
+            <option value="Learner">Learner</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </label>
+
         <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
           Email Address
           <div className="mt-2 flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3">

@@ -3,20 +3,22 @@ import { LayoutDashboard, BookOpen, Users, BarChart3, LogOut, BookMarked, X, Sta
 
 const AdminSidebar = ({ isOpen = true, onClose }) => {
   const navigate = useNavigate();
+  const isMasterAdmin = localStorage.getItem('userIsMasterAdmin') === 'true';
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userIsMasterAdmin');
     navigate('/login');
   };
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
     { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
-    { icon: Users, label: 'Users', path: '/admin/users' },
-      { icon: Star, label: 'Reviews', path: '/admin/reviews' },
+    ...(isMasterAdmin ? [{ icon: Users, label: 'Users', path: '/admin/users' }] : []),
+    { icon: Star, label: 'Reviews', path: '/admin/reviews' },
     { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
   ];
 
@@ -82,7 +84,7 @@ const AdminSidebar = ({ isOpen = true, onClose }) => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm truncate">{userName}</p>
-            <p className="text-xs text-slate-400">Admin</p>
+            <p className="text-xs text-slate-400">{isMasterAdmin ? 'Master Admin' : 'Admin'}</p>
           </div>
         </div>
         <button

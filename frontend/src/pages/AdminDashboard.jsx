@@ -12,6 +12,7 @@ import CourseReviews from '../components/admin/CourseReviews';
 
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMasterAdmin = localStorage.getItem('userIsMasterAdmin') === 'true';
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -33,7 +34,7 @@ const AdminDashboard = () => {
           >
             <Menu className="w-6 h-6 text-slate-700" />
           </button>
-          <h2 className="text-lg font-semibold text-slate-900">Admin Dashboard</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{isMasterAdmin ? 'Master Dashboard' : 'Admin Dashboard'}</h2>
         </div>
         
         <div className="max-w-7xl mx-auto p-8">

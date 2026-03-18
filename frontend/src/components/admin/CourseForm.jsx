@@ -1,12 +1,12 @@
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getImageUrl } from '../../utils/api';
 
-const CourseForm = ({ isOpen, onClose, onSubmit }) => {
+const CourseForm = ({ isOpen, onClose, onSubmit, defaultInstructor = '', instructorReadOnly = false }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    instructor: '',
+    instructor: defaultInstructor,
     category: '',
     level: 'Beginner',
     duration: '',
@@ -18,6 +18,12 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  useEffect(() => {
+    if (defaultInstructor) {
+      setFormData((prev) => ({ ...prev, instructor: defaultInstructor }));
+    }
+  }, [defaultInstructor, isOpen]);
 
   const readFileAsDataUrl = (file) =>
     new Promise((resolve, reject) => {
@@ -80,7 +86,7 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
       setFormData({
         title: '',
         description: '',
-        instructor: '',
+        instructor: defaultInstructor,
         category: '',
         level: 'Beginner',
         duration: '',
@@ -213,7 +219,8 @@ const CourseForm = ({ isOpen, onClose, onSubmit }) => {
               value={formData.instructor}
               onChange={handleChange}
               placeholder="Your name"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              readOnly={instructorReadOnly}
+              className={`w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 ${instructorReadOnly ? 'bg-slate-100 text-slate-600' : ''}`}
               required
             />
           </div>

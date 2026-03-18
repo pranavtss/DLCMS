@@ -4,12 +4,21 @@ import SearchBar from '../common/SearchBar';
 import { apiFetch } from '../../utils/api';
 
 const Users = () => {
+  const isMasterAdmin = localStorage.getItem('userIsMasterAdmin') === 'true';
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
   const [userStats, setUserStats] = useState({ total: 0, learners: 0, admins: 0 });
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'Learner',
+  });
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createMessage, setCreateMessage] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -19,6 +28,12 @@ const Users = () => {
     try {
       setLoading(true);
       const response = await apiFetch('/api/admin/users');
+
+      if (response.status === 403) {
+        setUsers([]);
+        setUserStats({ total: 0, learners: 0, admins: 0 });
+        return;
+      }
       
       if (!response.ok) throw new Error('Failed to fetch users');
       
@@ -35,6 +50,39 @@ const Users = () => {
       console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateUser = async (event) => {
+    event.preventDefault();
+
+    if (!createForm.name || !createForm.email || !createForm.password) {
+      setCreateMessage('Please fill name, email, and password.');
+      return;
+    }
+
+    try {
+      setCreateLoading(true);
+      setCreateMessage('');
+
+      const response = await apiFetch('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(createForm),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setCreateMessage(data.message || 'Failed to create user');
+        return;
+      }
+
+      setCreateForm({ name: '', email: '', password: '', role: 'Learner' });
+      setCreateMessage('User created successfully.');
+      await fetchUsers();
+    } catch (error) {
+      setCreateMessage('Failed to create user');
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -79,10 +127,63 @@ const Users = () => {
 
   return (
     <div>
+      {!isMasterAdmin && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+          User management is available only for the master admin account.
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-slate-900">Users</h1>
         <p className="text-slate-600 mt-1">Manage learners and administrators</p>
       </div>
+
+      {isMasterAdmin && (
+        <form onSubmit={handleCreateUser} className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Add User Manually</h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <input
+              type="text"
+              placeholder="Full name"
+              value={createForm.name}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              type="email"
+              placeholder="Email address"
+              value={createForm.email}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={createForm.password}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <select
+              value={createForm.role}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="Learner">Learner</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={createLoading}
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+            >
+              {createLoading ? 'Creating...' : 'Create User'}
+            </button>
+            {createMessage && <p className="text-sm text-slate-600">{createMessage}</p>}
+          </div>
+        </form>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

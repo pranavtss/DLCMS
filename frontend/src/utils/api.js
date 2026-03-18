@@ -64,6 +64,7 @@ export const apiFetch = async (endpoint, options = {}) => {
       localStorage.removeItem("userId")
       localStorage.removeItem("userName")
       localStorage.removeItem("userRole")
+      localStorage.removeItem("userIsMasterAdmin")
       // Redirect to login if needed
       if (typeof window !== "undefined") {
         window.location.href = "/login"
@@ -85,5 +86,6 @@ export const logout = () => {
   localStorage.removeItem("userId")
   localStorage.removeItem("userName")
   localStorage.removeItem("userRole")
+  localStorage.removeItem("userIsMasterAdmin")
   window.location.href = "/login"
 }

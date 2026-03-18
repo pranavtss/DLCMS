@@ -59,7 +59,7 @@ const upload = multer({
 })
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dlcms"
-const ADMIN_EMAIL = "admin@dlcms"
+const MASTER_ADMIN_EMAIL = (process.env.MASTER_ADMIN_EMAIL || "admin@dlcms.ac.in").toLowerCase()
 const ADMIN_PASSWORD = "admin"
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ""
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production"
@@ -67,9 +67,11 @@ const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d"
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null
 
 // JWT Token Generation
-const generateToken = (userId, email, role) => {
+const isMasterAdminUser = (user) => user?.role === "Admin" && String(user?.email || "").toLowerCase() === MASTER_ADMIN_EMAIL
+
+const generateToken = (userId, email, role, isMasterAdmin = false) => {
   return jwt.sign(
-    { userId, email, role },
+    { userId, email, role, isMasterAdmin },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRE }
   )
@@ -103,17 +105,34 @@ const authorizeAdmin = (req, res, next) => {
   next()
 }
 
+const authorizeMasterAdmin = (req, res, next) => {
+  if (!req.user?.isMasterAdmin) {
+    return res.status(403).json({ message: "Master admin access required" })
+  }
+  next()
+}
+
+const canAccessCourse = async (user, courseId) => {
+  if (user?.isMasterAdmin) {
+    return true
+  }
+
+  const course = await Course.findOne({ _id: courseId, createdBy: user.userId }).select("_id")
+  return Boolean(course)
+}
+
 const ensureAdminAccount = async () => {
   try {
     const adminHash = await bcrypt.hash(ADMIN_PASSWORD, 10)
-    const existing = await User.findOne({ email: ADMIN_EMAIL })
+    const existing = await User.findOne({ email: MASTER_ADMIN_EMAIL })
 
     if (!existing) {
       const newAdmin = await User.create({
         name: "Admin",
-        email: ADMIN_EMAIL,
+        email: MASTER_ADMIN_EMAIL,
         password: adminHash,
         role: "Admin",
+        type: "email",
       })
       console.log("✓ Admin account created with ID:", newAdmin._id.toString())
       return
@@ -125,6 +144,7 @@ const ensureAdminAccount = async () => {
     if (existing.role !== "Admin" || !passwordMatches) {
       existing.role = "Admin"
       existing.password = adminHash
+      existing.type = "email"
       await existing.save()
       console.log("✓ Admin account updated")
     } else {
@@ -177,7 +197,7 @@ app.get("/api/health", (req, res) => {
 })
 
 app.post("/api/auth/login", (req, res) => {
-  const { email, password } = req.body
+  const { email, password, accountType } = req.body
   console.log(`\n📧 Login attempt: ${email}`)
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password required." })
@@ -190,14 +210,15 @@ app.post("/api/auth/login", (req, res) => {
         return res.status(401).json({ message: "Invalid credentials." })
       }
       console.log(`✓ User found: ${user.name} (role: ${user.role})`)
-      if (email.toLowerCase() === "admin@dlcms" && user.role !== "Admin") {
-        console.log(`❌ Login failed: Admin email used but user role is ${user.role}`)
-        return res.status(403).json({ message: "Unauthorized admin login." })
+
+      if (accountType === "Admin" && user.role !== "Admin") {
+        return res.status(403).json({ message: "This account is not an admin account." })
       }
-      if (user.role === "Admin" && user.email !== "admin@dlcms") {
-        console.log(`❌ Login failed: User has Admin role but email is ${user.email}`)
-        return res.status(403).json({ message: "Unauthorized admin login." })
+
+      if (accountType === "Learner" && user.role === "Admin") {
+        return res.status(403).json({ message: "Please use Admin login for this account." })
       }
+
       const match = await bcrypt.compare(password, user.password)
       console.log(`🔐 Password comparison result: ${match}`)
       if (!match) {
@@ -205,12 +226,14 @@ app.post("/api/auth/login", (req, res) => {
         return res.status(401).json({ message: "Invalid credentials." })
       }
       console.log(`✅ Login successful for ${email.toLowerCase()}`)
-      const token = generateToken(user._id, user.email, user.role)
+      const isMasterAdmin = isMasterAdminUser(user)
+      const token = generateToken(user._id, user.email, user.role, isMasterAdmin)
       return res.json({ 
         message: "Login successful", 
         userId: user._id, 
         role: user.role, 
         name: user.name,
+        isMasterAdmin,
         token: token 
       })
     })
@@ -239,7 +262,7 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(403).json({ message: "Username 'admin' is reserved." })
     }
 
-    if (email.trim().toLowerCase() === "admin@dlcms") {
+    if (email.trim().toLowerCase() === MASTER_ADMIN_EMAIL) {
       return res.status(403).json({ message: "Admin account is reserved." })
     }
     
@@ -264,6 +287,7 @@ app.post("/api/auth/register", async (req, res) => {
       email: email.toLowerCase(),
       password: hashed,
       role: role === "Admin" ? "Admin" : "Learner",
+      type: "email",
     }
     console.log('📝 Creating user with data:', { ...userDoc, password: '***' })
     
@@ -309,7 +333,7 @@ app.post("/api/auth/google", async (req, res) => {
     const email = payload.email.toLowerCase()
     const name = payload.name || email.split("@")[0]
 
-    if (email === ADMIN_EMAIL) {
+    if (email === MASTER_ADMIN_EMAIL) {
       return res.status(403).json({ message: "Google login is not allowed for admin account." })
     }
 
@@ -323,6 +347,7 @@ app.post("/api/auth/google", async (req, res) => {
         email,
         password: hashed,
         role: "Learner",
+        type: "google",
       })
     }
 
@@ -330,12 +355,13 @@ app.post("/api/auth/google", async (req, res) => {
       return res.status(403).json({ message: "Unauthorized admin login." })
     }
 
-    const token = generateToken(user._id, user.email, user.role)
+    const token = generateToken(user._id, user.email, user.role, isMasterAdminUser(user))
     return res.json({
       message: "Login successful",
       userId: user._id,
       role: user.role,
       name: user.name,
+      isMasterAdmin: isMasterAdminUser(user),
       token: token,
     })
   } catch (error) {
@@ -397,7 +423,7 @@ app.get("/api/courses/:id", async (req, res) => {
   }
 })
 
-app.get("/api/admin/users", authenticateToken, authorizeAdmin, async (req, res) => {
+app.get("/api/admin/users", authenticateToken, authorizeAdmin, authorizeMasterAdmin, async (req, res) => {
   try {
     const users = await User.find().select('-password').sort({ createdAt: -1 })
     res.json(users)
@@ -406,7 +432,7 @@ app.get("/api/admin/users", authenticateToken, authorizeAdmin, async (req, res) 
   }
 })
 
-app.get("/api/admin/users/:id", authenticateToken, authorizeAdmin, async (req, res) => {
+app.get("/api/admin/users/:id", authenticateToken, authorizeAdmin, authorizeMasterAdmin, async (req, res) => {
   try {
     const { id } = req.params
     
@@ -421,13 +447,17 @@ app.get("/api/admin/users/:id", authenticateToken, authorizeAdmin, async (req, r
   }
 })
 
-app.delete("/api/admin/users/:id", authenticateToken, authorizeAdmin, async (req, res) => {
+app.delete("/api/admin/users/:id", authenticateToken, authorizeAdmin, authorizeMasterAdmin, async (req, res) => {
   try {
     const { id } = req.params
     
     const userToDelete = await User.findById(id)
     if (!userToDelete) {
       return res.status(404).json({ message: "User not found" })
+    }
+
+    if (String(userToDelete.email).toLowerCase() === MASTER_ADMIN_EMAIL) {
+      return res.status(403).json({ message: "Master admin account cannot be deleted" })
     }
 
     if (userToDelete.role === "Admin") {
@@ -464,9 +494,54 @@ app.delete("/api/admin/users/:id", authenticateToken, authorizeAdmin, async (req
   }
 })
 
+app.post("/api/admin/users", authenticateToken, authorizeAdmin, authorizeMasterAdmin, async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required." })
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim()
+
+    if (normalizedEmail === MASTER_ADMIN_EMAIL) {
+      return res.status(403).json({ message: "Master admin account is reserved." })
+    }
+
+    const existing = await User.findOne({ email: normalizedEmail })
+    if (existing) {
+      return res.status(409).json({ message: "Account already exists." })
+    }
+
+    const hashed = await bcrypt.hash(password, 10)
+    const created = await User.create({
+      name: String(name).trim(),
+      email: normalizedEmail,
+      password: hashed,
+      role: role === "Admin" ? "Admin" : "Learner",
+      type: "email",
+    })
+
+    res.status(201).json({
+      message: "User created successfully",
+      user: {
+        _id: created._id,
+        name: created.name,
+        email: created.email,
+        role: created.role,
+        type: created.type,
+        createdAt: created.createdAt,
+      },
+    })
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create user", error: error.message })
+  }
+})
+
 app.get("/api/admin/courses", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
-    const courses = await Course.find().sort({ createdAt: -1 })
+    const query = req.user.isMasterAdmin ? {} : { createdBy: req.user.userId }
+    const courses = await Course.find(query).sort({ createdAt: -1 })
     res.json(courses)
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch courses", error: error.message })
@@ -476,8 +551,9 @@ app.get("/api/admin/courses", authenticateToken, authorizeAdmin, async (req, res
 app.get("/api/admin/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
-    
-    const course = await Course.findById(id)
+
+    const query = req.user.isMasterAdmin ? { _id: id } : { _id: id, createdBy: req.user.userId }
+    const course = await Course.findOne(query)
     if (!course) {
       return res.status(404).json({ message: "Course not found" })
     }
@@ -491,10 +567,13 @@ app.get("/api/admin/courses/:id", authenticateToken, authorizeAdmin, async (req,
 app.post("/api/courses", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { title, description, instructor, category, level, duration, lessons, price, originalPrice, thumbnail, status } = req.body
-    const userId = req.body.userId || req.headers['x-user-id']
+    const userId = req.user.userId
+
+    const owner = await User.findById(userId).select("name")
+    const defaultInstructorName = owner?.name || "Admin"
     
-    if (!title || !description || !instructor || !category) {
-      return res.status(400).json({ message: "Please provide title, description, instructor, and category" })
+    if (!title || !description || !category) {
+      return res.status(400).json({ message: "Please provide title, description, and category" })
     }
 
     const normalizedLessons = Array.isArray(lessons) ? lessons : []
@@ -504,7 +583,7 @@ app.post("/api/courses", authenticateToken, authorizeAdmin, async (req, res) => 
     const course = await Course.create({
       title,
       description,
-      instructor,
+      instructor: String(instructor || defaultInstructorName).trim(),
       category,
       level: level || "Beginner",
       duration: duration || "N/A",
@@ -524,9 +603,14 @@ app.post("/api/courses", authenticateToken, authorizeAdmin, async (req, res) => 
   }
 })
 
-app.patch("/api/courses/:id", async (req, res) => {
+app.patch("/api/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
+    const hasAccess = await canAccessCourse(req.user, id)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only edit your own courses." })
+    }
+
     const updates = { ...req.body }
 
     if (Object.prototype.hasOwnProperty.call(updates, "status")) {
@@ -552,6 +636,11 @@ app.patch("/api/courses/:id", async (req, res) => {
 app.patch("/api/admin/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
+    const hasAccess = await canAccessCourse(req.user, id)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only edit your own courses." })
+    }
+
     const updates = { ...req.body }
 
     if (Object.prototype.hasOwnProperty.call(updates, "status")) {
@@ -576,8 +665,8 @@ app.patch("/api/admin/courses/:id", authenticateToken, authorizeAdmin, async (re
 app.delete("/api/courses/:id", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { id } = req.params
-    
-    const course = await Course.findByIdAndDelete(id)
+    const query = req.user.isMasterAdmin ? { _id: id } : { _id: id, createdBy: req.user.userId }
+    const course = await Course.findOneAndDelete(query)
     
     if (!course) {
       return res.status(404).json({ message: "Course not found" })
@@ -594,6 +683,11 @@ app.post("/api/courses/:courseId/lessons", authenticateToken, authorizeAdmin, as
   try {
     const { courseId } = req.params
     const { title, videoUrl, videoUrls, description, order, materials } = req.body
+
+    const hasAccess = await canAccessCourse(req.user, courseId)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only modify your own courses." })
+    }
 
     const course = await Course.findById(courseId)
     if (!course) {
@@ -631,10 +725,15 @@ app.post("/api/courses/:courseId/lessons", authenticateToken, authorizeAdmin, as
   }
 })
 
-app.patch("/api/courses/:courseId/lessons/:lessonId", async (req, res) => {
+app.patch("/api/courses/:courseId/lessons/:lessonId", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { courseId, lessonId } = req.params
     const { title, videoUrl, videoUrls, description, order } = req.body
+
+    const hasAccess = await canAccessCourse(req.user, courseId)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only modify your own courses." })
+    }
 
     const course = await Course.findById(courseId)
     if (!course) {
@@ -678,6 +777,11 @@ app.delete("/api/courses/:courseId/lessons/:lessonId", authenticateToken, author
   try {
     const { courseId, lessonId } = req.params
 
+    const hasAccess = await canAccessCourse(req.user, courseId)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only modify your own courses." })
+    }
+
     const course = await Course.findById(courseId)
     if (!course) {
       return res.status(404).json({ message: "Course not found" })
@@ -698,10 +802,15 @@ app.delete("/api/courses/:courseId/lessons/:lessonId", authenticateToken, author
   }
 })
 
-app.post("/api/courses/:courseId/lessons/:lessonId/materials", async (req, res) => {
+app.post("/api/courses/:courseId/lessons/:lessonId/materials", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { courseId, lessonId } = req.params
     const { name, url, type } = req.body
+
+    const hasAccess = await canAccessCourse(req.user, courseId)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only modify your own courses." })
+    }
 
     const course = await Course.findById(courseId)
     if (!course) {
@@ -735,10 +844,15 @@ app.post("/api/courses/:courseId/lessons/:lessonId/materials", async (req, res) 
   }
 })
 
-app.patch("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", async (req, res) => {
+app.patch("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { courseId, lessonId, materialId } = req.params
     const { name, url, type } = req.body
+
+    const hasAccess = await canAccessCourse(req.user, courseId)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only modify your own courses." })
+    }
 
     console.log(`🔍 PATCH Material Update:`)
     console.log(`  - courseId: ${courseId}`)
@@ -788,6 +902,11 @@ app.patch("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", asyn
 app.delete("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { courseId, lessonId, materialId } = req.params
+
+    const hasAccess = await canAccessCourse(req.user, courseId)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only modify your own courses." })
+    }
 
     const course = await Course.findById(courseId)
     if (!course) {
@@ -891,7 +1010,15 @@ app.get("/api/reviews/user/:userId", async (req, res) => {
 
 app.get("/api/admin/reviews", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
-    const reviews = await Review.find()
+    let reviewsQuery = {}
+
+    if (!req.user.isMasterAdmin) {
+      const ownCourses = await Course.find({ createdBy: req.user.userId }).select("_id")
+      const ownCourseIds = ownCourses.map((course) => course._id)
+      reviewsQuery = { courseId: { $in: ownCourseIds } }
+    }
+
+    const reviews = await Review.find(reviewsQuery)
       .populate('courseId', 'title thumbnail')
       .populate('userId', 'name email')
       .sort({ createdAt: -1 })
@@ -904,6 +1031,25 @@ app.get("/api/admin/reviews", authenticateToken, authorizeAdmin, async (req, res
 app.delete("/api/reviews/:reviewId", authenticateToken, async (req, res) => {
   try {
     const { reviewId } = req.params
+
+    const existingReview = await Review.findById(reviewId)
+    if (!existingReview) {
+      return res.status(404).json({ message: "Review not found" })
+    }
+
+    const isOwner = String(existingReview.userId) === String(req.user.userId)
+    const isAdmin = req.user.role === "Admin"
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "You are not allowed to delete this review." })
+    }
+
+    if (isAdmin && !req.user.isMasterAdmin) {
+      const reviewCourse = await Course.findOne({ _id: existingReview.courseId, createdBy: req.user.userId }).select("_id")
+      if (!reviewCourse) {
+        return res.status(403).json({ message: "You can only manage reviews for your own courses." })
+      }
+    }
 
     const review = await Review.findByIdAndDelete(reviewId)
 
@@ -1023,9 +1169,15 @@ app.get("/api/enrollments/user/:userId", async (req, res) => {
   }
 })
 
-app.get("/api/enrollments/course/:courseId", async (req, res) => {
+app.get("/api/enrollments/course/:courseId", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
     const { courseId } = req.params
+
+    const hasAccess = await canAccessCourse(req.user, courseId)
+    if (!hasAccess) {
+      return res.status(403).json({ message: "You can only view enrollments for your own courses." })
+    }
+
     const enrollments = await Enrollment.find({ courseId, status: "enrolled" })
       .populate('userId', 'name email')
       .sort({ enrolledAt: -1 })
@@ -1036,9 +1188,17 @@ app.get("/api/enrollments/course/:courseId", async (req, res) => {
   }
 })
 
-app.get("/api/enrollments/all", async (req, res) => {
+app.get("/api/enrollments/all", authenticateToken, authorizeAdmin, async (req, res) => {
   try {
-    const enrollments = await Enrollment.find()
+    let enrollmentsQuery = {}
+
+    if (!req.user.isMasterAdmin) {
+      const ownCourses = await Course.find({ createdBy: req.user.userId }).select("_id")
+      const ownCourseIds = ownCourses.map((course) => course._id)
+      enrollmentsQuery = { courseId: { $in: ownCourseIds } }
+    }
+
+    const enrollments = await Enrollment.find(enrollmentsQuery)
       .populate('userId', 'name email')
       .populate('courseId', 'title')
       .sort({ enrolledAt: -1 })
