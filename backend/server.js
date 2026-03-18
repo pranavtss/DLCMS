@@ -308,7 +308,7 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/google", async (req, res) => {
   try {
-    const { credential } = req.body
+    const { credential, accountType } = req.body
 
     if (!credential) {
       return res.status(400).json({ message: "Google credential is required." })
@@ -351,8 +351,12 @@ app.post("/api/auth/google", async (req, res) => {
       })
     }
 
-    if (user.role === "Admin") {
-      return res.status(403).json({ message: "Unauthorized admin login." })
+    if (accountType === "Admin" && user.role !== "Admin") {
+      return res.status(403).json({ message: "This account is not an admin account." })
+    }
+
+    if (accountType === "Learner" && user.role === "Admin") {
+      return res.status(403).json({ message: "Please use Admin login for this account." })
     }
 
     const token = generateToken(user._id, user.email, user.role, isMasterAdminUser(user))

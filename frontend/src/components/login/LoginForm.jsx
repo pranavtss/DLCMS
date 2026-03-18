@@ -20,7 +20,10 @@ const LoginForm = () => {
       const apiResponse = await fetch(`${API_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential: response.credential }),
+        body: JSON.stringify({
+          credential: response.credential,
+          accountType: formState.accountType,
+        }),
       })
 
       const data = await apiResponse.json()
@@ -254,12 +257,18 @@ const LoginForm = () => {
         )}
       </div>
 
-      <p className="mt-6 text-center text-xs text-slate-500">
-        Don't have an account?{" "}
-        <span className="font-semibold text-brand-600 cursor-pointer" onClick={() => navigate("/register")}>
-          Create an account
-        </span>
-      </p>
+      {formState.accountType === "Learner" ? (
+        <p className="mt-6 text-center text-xs text-slate-500">
+          Don't have an account?{" "}
+          <span className="font-semibold text-brand-600 cursor-pointer" onClick={() => navigate("/register")}>
+            Create an account
+          </span>
+        </p>
+      ) : (
+        <p className="mt-6 text-center text-xs text-slate-500">
+          Admin login is restricted to authorized admin accounts.
+        </p>
+      )}
     </div>
   )
 }

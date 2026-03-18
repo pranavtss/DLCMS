@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users as UsersIcon, UserCheck, UserX, Mail, Calendar, Trash2, Eye, UserPlus, KeyRound, ShieldCheck } from 'lucide-react';
+import { Users as UsersIcon, UserCheck, UserX, Mail, Calendar, Trash2, Eye, EyeOff, UserPlus, KeyRound, ShieldCheck } from 'lucide-react';
 import SearchBar from '../common/SearchBar';
 import { apiFetch } from '../../utils/api';
 
@@ -15,11 +15,12 @@ const Users = () => {
     name: '',
     email: '',
     password: '',
-    role: 'Learner',
+    role: 'Admin',
   });
   const [createLoading, setCreateLoading] = useState(false);
   const [createMessage, setCreateMessage] = useState('');
   const [createMessageType, setCreateMessageType] = useState('');
+  const [showTempPassword, setShowTempPassword] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -80,7 +81,7 @@ const Users = () => {
         return;
       }
 
-      setCreateForm({ name: '', email: '', password: '', role: 'Learner' });
+      setCreateForm({ name: '', email: '', password: '', role: 'Admin' });
       setCreateMessage('User created successfully.');
       setCreateMessageType('success');
       await fetchUsers();
@@ -190,12 +191,20 @@ const Users = () => {
               <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5">
                 <KeyRound className="h-4 w-4 text-slate-400" />
                 <input
-                  type="password"
+                  type={showTempPassword ? 'text' : 'password'}
                   placeholder="Set initial password"
                   value={createForm.password}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
                   className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowTempPassword((prev) => !prev)}
+                  className="text-slate-400 hover:text-slate-600"
+                  aria-label={showTempPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showTempPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </label>
 
@@ -208,8 +217,8 @@ const Users = () => {
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}
                   className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
                 >
-                  <option value="Learner">Learner</option>
                   <option value="Admin">Admin</option>
+                  <option value="Learner">Learner</option>
                 </select>
               </div>
             </label>
