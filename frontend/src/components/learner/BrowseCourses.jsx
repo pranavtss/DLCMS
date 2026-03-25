@@ -7,7 +7,6 @@ const BrowseCourses = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
-    const [courseRatings, setCourseRatings] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -19,7 +18,6 @@ const BrowseCourses = () => {
 
   useEffect(() => {
     fetchCourses();
-    fetchAllRatings();
     loadEnrolledCourses();
     loadEnrollmentCounts();
 
@@ -154,7 +152,6 @@ const BrowseCourses = () => {
   const handleRefresh = async () => {
     await Promise.all([
       fetchCourses(),
-      fetchAllRatings(),
       loadEnrolledCourses(),
       loadEnrollmentCounts(),
     ]);
@@ -200,34 +197,14 @@ const BrowseCourses = () => {
     setFilteredCourses(result);
   }, [courses, searchQuery, selectedLevel, selectedCategory, sortBy]);
 
-  const fetchAllRatings = async () => {
-    try {
-      // Derive ratings from course data instead of admin-only reviews endpoint
-      const ratingsMap = {};
-      courses.forEach(course => {
-        const courseId = course._id;
-        if (!courseId) return;
-        const rating = course.rating || 0;
-        const reviewsCount = course.reviews || 0;
-        if (reviewsCount > 0) {
-          ratingsMap[courseId] = {
-            total: rating * reviewsCount,
-            count: reviewsCount,
-            average: rating.toFixed(1),
-          };
-        }
-      });
-
-      setCourseRatings(ratingsMap);
-    } catch (err) {
-      console.error('Error fetching ratings:', err);
+  const getCourseRating = (course) => {
+    const count = Number(course?.reviews) || 0;
+    if (count <= 0) {
+      return { average: null, count: 0 };
     }
-  };
 
-  const getCourseRating = (courseId) => {
-    const rating = courseRatings[courseId];
-    if (!rating) return { average: null, count: 0 };
-    return { average: rating.average, count: rating.count };
+    const average = Number(course?.rating) || 0;
+    return { average: average.toFixed(1), count };
   };
 
   const levels = ['All Levels', 'Beginner', 'Intermediate', 'Advanced'];
@@ -401,7 +378,7 @@ const BrowseCourses = () => {
 
                 <div className="flex items-center gap-4 mb-4 pb-4 border-b border-slate-200">
                   {(() => {
-                    const { average, count } = getCourseRating(course._id);
+                    const { average, count } = getCourseRating(course);
                     return average ? (
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
