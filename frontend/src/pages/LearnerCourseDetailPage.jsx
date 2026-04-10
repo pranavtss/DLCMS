@@ -506,7 +506,6 @@ const LearnerCourseDetailPage = () => {
                                 <a
                                   key={material._id}
                                   href={material.url}
-                                  download
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
@@ -522,7 +521,6 @@ const LearnerCourseDetailPage = () => {
                                       {material.type}
                                     </p>
                                   </div>
-                                  <Download className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
                                 </a>
                               ))}
                             </div>
