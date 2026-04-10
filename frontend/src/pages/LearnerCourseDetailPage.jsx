@@ -91,6 +91,27 @@ const getLessonVideoUrls = (lesson) => {
   return [];
 };
 
+const isPresentationMaterial = (material) => {
+  const type = String(material?.type || '').toLowerCase();
+  const name = String(material?.name || '').toLowerCase();
+  const url = String(material?.url || '').toLowerCase();
+
+  if (type.includes('ppt') || type.includes('presentation')) return true;
+
+  return /\.pptx?(\?|#|$)/.test(name) || /\.pptx?(\?|#|$)/.test(url);
+};
+
+const getMaterialHref = (material) => {
+  const sourceUrl = getImageUrl(material?.url);
+  if (!sourceUrl) return '#';
+
+  if (isPresentationMaterial(material)) {
+    return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(sourceUrl)}`;
+  }
+
+  return sourceUrl;
+};
+
 const LearnerCourseDetailPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -505,7 +526,7 @@ const LearnerCourseDetailPage = () => {
                               {lesson.materials.map((material) => (
                                 <a
                                   key={material._id}
-                                  href={material.url}
+                                  href={getMaterialHref(material)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
