@@ -11,6 +11,7 @@ const path = require("path")
 const fs = require("fs")
 const multer = require("multer")
 const { OAuth2Client } = require("google-auth-library")
+const { v2: cloudinary } = require("cloudinary")
 const User = require("./models/User")
 const Course = require("./models/Course")
 const Review = require("./models/Review")
@@ -25,6 +26,27 @@ app.use(helmet({
 app.use(morgan("combined"))
 app.use(cors())
 app.use(express.json({ limit: "10mb" }))
+
+const CLOUDINARY_URL = process.env.CLOUDINARY_URL || ""
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || ""
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || ""
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || ""
+const CLOUDINARY_UPLOAD_FOLDER = process.env.CLOUDINARY_UPLOAD_FOLDER || "dlcms/materials"
+
+if (CLOUDINARY_URL) {
+  cloudinary.config(CLOUDINARY_URL)
+} else if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME,
+    api_key: CLOUDINARY_API_KEY,
+    api_secret: CLOUDINARY_API_SECRET,
+  })
+}
+
+const isCloudinaryConfigured = Boolean(
+  CLOUDINARY_URL || (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET)
+)
+
 const uploadsDir = process.env.UPLOADS_DIR
   ? path.resolve(process.env.UPLOADS_DIR)
   : path.join(__dirname, "uploads")
@@ -54,7 +76,7 @@ app.use("/uploads", (req, res, next) => {
 
 app.use("/uploads", express.static(uploadsDir))
 
-const upload = multer({
+const localUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
       cb(null, uploadsDir)
@@ -70,13 +92,39 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB for educational materials
 })
 
+const cloudUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB for educational materials
+})
+
+const inferCloudinaryResourceType = (mimeType = "") => {
+  if (String(mimeType).startsWith("image/")) return "image"
+  if (String(mimeType).startsWith("video/")) return "video"
+  return "raw"
+}
+
+const sanitizeBaseName = (filename = "file") =>
+  String(filename)
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .slice(0, 70) || "file"
+
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dlcms"
 const MASTER_ADMIN_EMAIL = (process.env.MASTER_ADMIN_EMAIL || "admin@dlcms.ac.in").toLowerCase()
-const ADMIN_PASSWORD = "admin"
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin"
+const ADMIN_SECRET = process.env.ADMIN_SECRET || ""
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ""
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production"
 const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d"
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null
+
+if (!process.env.ADMIN_PASSWORD && process.env.NODE_ENV === "production") {
+  console.warn("⚠️  ADMIN_PASSWORD is not set. Falling back to default admin password.")
+}
+
+if (!ADMIN_SECRET && process.env.NODE_ENV === "production") {
+  console.warn("⚠️  ADMIN_SECRET is not set. Admin account creation via register will be disabled.")
+}
 
 // JWT Token Generation
 const isMasterAdminUser = (user) => user?.role === "Admin" && String(user?.email || "").toLowerCase() === MASTER_ADMIN_EMAIL
@@ -279,7 +327,10 @@ app.post("/api/auth/register", async (req, res) => {
     }
     
     if (role === "Admin") {
-      const ADMIN_SECRET = process.env.ADMIN_SECRET || "dlcms-admin-2026"
+      if (!ADMIN_SECRET) {
+        return res.status(503).json({ message: "Admin registration is not configured." })
+      }
+
       if (adminSecret !== ADMIN_SECRET) {
         return res.status(403).json({ message: "Unauthorized admin creation." })
       }
@@ -387,7 +438,9 @@ app.post("/api/auth/google", async (req, res) => {
 
 app.post("/api/uploads", (req, res, next) => {
   console.log("📁 Upload request received")
-  upload.single("file")(req, res, (err) => {
+  const uploadMiddleware = isCloudinaryConfigured ? cloudUpload : localUpload
+
+  uploadMiddleware.single("file")(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       console.error("❌ Multer error:", err.code, err.message)
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -404,14 +457,50 @@ app.post("/api/uploads", (req, res, next) => {
       return res.status(400).json({ message: "No file uploaded" })
     }
 
-    const fileUrl = `/uploads/${req.file.filename}`
-    console.log("✓ File uploaded successfully:", fileUrl)
-    res.status(201).json({
-      message: "File uploaded",
-      url: fileUrl,
-      originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
-    })
+    try {
+      let fileUrl = ""
+
+      if (isCloudinaryConfigured) {
+        const resourceType = inferCloudinaryResourceType(req.file.mimetype)
+        const publicId = `${sanitizeBaseName(req.file.originalname)}-${Date.now()}`
+
+        const result = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: CLOUDINARY_UPLOAD_FOLDER,
+              resource_type: resourceType,
+              public_id: publicId,
+              overwrite: true,
+            },
+            (uploadError, uploadResult) => {
+              if (uploadError) {
+                reject(uploadError)
+                return
+              }
+              resolve(uploadResult)
+            }
+          )
+
+          uploadStream.end(req.file.buffer)
+        })
+
+        fileUrl = result.secure_url
+      } else {
+        const fileUrlLocal = `/uploads/${req.file.filename}`
+        fileUrl = fileUrlLocal
+      }
+
+      console.log("✓ File uploaded successfully:", fileUrl)
+      res.status(201).json({
+        message: "File uploaded",
+        url: fileUrl,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+      })
+    } catch (uploadError) {
+      console.error("❌ Cloud upload failed:", uploadError.message)
+      return res.status(500).json({ message: "Upload failed", error: uploadError.message })
+    }
   })
 })
 

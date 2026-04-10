@@ -2,7 +2,7 @@
  * API Utility Functions for authenticated requests
  */
 
-const API_BASE_URL = "https://dlcms-g6hp.onrender.com"
+export const API_BASE_URL = "https://dlcms-g6hp.onrender.com"
 
 export const getImageUrl = (path) => {
   if (!path) return null

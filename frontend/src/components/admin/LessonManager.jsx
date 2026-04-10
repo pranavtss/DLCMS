@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Play, Edit2, Save, X, GripVertical } from 'lucide-react';
-import { apiFetch } from '../../utils/api';
+import { API_BASE_URL, apiFetch } from '../../utils/api';
 
 const getYouTubeVideoId = (url) => {
   if (!url) return null;
@@ -298,10 +298,13 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
       }
 
       const inferredType = guessMaterialType(data.mimeType);
+      const resolvedUrl = data.url?.startsWith('http')
+        ? data.url
+        : `${API_BASE_URL}${data.url?.startsWith('/') ? data.url : `/${data.url || ''}`}`;
 
       setNewMaterial((prev) => ({
         ...prev,
-        url: `https://dlcms-g6hp.onrender.com${data.url}`,
+        url: resolvedUrl,
         name: prev.name || data.originalName || selectedFile?.name || '',
         type: prev.type === 'pdf' ? inferredType : prev.type,
       }));
