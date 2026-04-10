@@ -109,6 +109,23 @@ const sanitizeBaseName = (filename = "file") =>
     .replace(/[^a-zA-Z0-9_-]/g, "_")
     .slice(0, 70) || "file"
 
+const getSafeExtension = (filename = "") => {
+  const match = String(filename || "").toLowerCase().match(/\.([a-z0-9]{1,10})$/)
+  return match?.[1] || ""
+}
+
+const buildCloudPublicId = (originalName, resourceType) => {
+  const base = `${sanitizeBaseName(originalName)}-${Date.now()}`
+
+  // For raw files, keep extension in URL so web viewers can infer file type.
+  if (resourceType === "raw") {
+    const ext = getSafeExtension(originalName)
+    return ext ? `${base}.${ext}` : base
+  }
+
+  return base
+}
+
 const normalizeExternalUrl = (value = "") => {
   const url = String(value || "").trim()
   if (!url) return ""
@@ -473,7 +490,7 @@ app.post("/api/uploads", (req, res, next) => {
 
       if (isCloudinaryConfigured) {
         const resourceType = inferCloudinaryResourceType(req.file.mimetype)
-        const publicId = `${sanitizeBaseName(req.file.originalname)}-${Date.now()}`
+        const publicId = buildCloudPublicId(req.file.originalname, resourceType)
 
         const result = await new Promise((resolve, reject) => {
           const uploadStream = cloudinary.uploader.upload_stream(
