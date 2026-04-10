@@ -103,13 +103,7 @@ const isPresentationMaterial = (material) => {
 
 const getMaterialHref = (material) => {
   const sourceUrl = getImageUrl(material?.url);
-  if (!sourceUrl) return '#';
-
-  if (isPresentationMaterial(material)) {
-    return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(sourceUrl)}`;
-  }
-
-  return sourceUrl;
+  return sourceUrl || '#';
 };
 
 const LearnerCourseDetailPage = () => {
@@ -523,27 +517,62 @@ const LearnerCourseDetailPage = () => {
                               Course Materials
                             </h4>
                             <div className="space-y-2">
-                              {lesson.materials.map((material) => (
-                                <a
-                                  key={material._id}
-                                  href={getMaterialHref(material)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
-                                >
-                                  <div className="flex-shrink-0 w-10 h-10 bg-red-50 rounded flex items-center justify-center">
-                                    {getMaterialIcon(material.type)}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
-                                      {material.name}
-                                    </p>
-                                    <p className="text-xs text-slate-500 uppercase mt-1">
-                                      {material.type}
-                                    </p>
-                                  </div>
-                                </a>
-                              ))}
+                              {lesson.materials.map((material) => {
+                                const href = getMaterialHref(material);
+                                const isPpt = isPresentationMaterial(material);
+                                
+                                // For PPT files, use an onclick handler to open in Office viewer
+                                if (isPpt) {
+                                  return (
+                                    <button
+                                      key={material._id}
+                                      onClick={() => {
+                                        const sourceUrl = getImageUrl(material?.url);
+                                        window.open(
+                                          `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(sourceUrl)}`,
+                                          '_blank'
+                                        );
+                                      }}
+                                      className="w-full text-left flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
+                                    >
+                                      <div className="flex-shrink-0 w-10 h-10 bg-red-50 rounded flex items-center justify-center">
+                                        {getMaterialIcon(material.type)}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
+                                          {material.name}
+                                        </p>
+                                        <p className="text-xs text-slate-500 uppercase mt-1">
+                                          {material.type}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  );
+                                }
+                                
+                                // For other file types, use regular link
+                                return (
+                                  <a
+                                    key={material._id}
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
+                                  >
+                                    <div className="flex-shrink-0 w-10 h-10 bg-red-50 rounded flex items-center justify-center">
+                                      {getMaterialIcon(material.type)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
+                                        {material.name}
+                                      </p>
+                                      <p className="text-xs text-slate-500 uppercase mt-1">
+                                        {material.type}
+                                      </p>
+                                    </div>
+                                  </a>
+                                );
+                              })}
                             </div>
                           </div>
                         )}

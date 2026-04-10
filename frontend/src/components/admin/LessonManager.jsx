@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Download, Play, Edit2, Save, X, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Play, Edit2, Save, X, GripVertical } from 'lucide-react';
 import { apiFetch } from '../../utils/api';
 
 const getYouTubeVideoId = (url) => {
@@ -77,6 +77,16 @@ const handleYouTubeThumbnailError = (event, videoId) => {
   // Stop retry loop after all known thumbnail variants fail.
   img.onerror = null;
   img.style.display = 'none';
+};
+
+const isPresentationMaterial = (material) => {
+  const type = String(material?.type || '').toLowerCase();
+  const name = String(material?.name || '').toLowerCase();
+  const url = String(material?.url || '').toLowerCase();
+
+  if (type.includes('ppt') || type.includes('presentation')) return true;
+
+  return /\.pptx?(\?|#|$)/.test(name) || /\.pptx?(\?|#|$)/.test(url);
 };
 
 const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMaterialDeleted }) => {
@@ -1000,14 +1010,28 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                               </div>
                             ) : (
                               <div>
-                                <a
-                                  href={material.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-medium text-slate-900 hover:text-brand-600"
-                                >
-                                  {material.name}
-                                </a>
+                                {isPresentationMaterial(material) ? (
+                                  <button
+                                    onClick={() => {
+                                      window.open(
+                                        `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(material.url)}`,
+                                        '_blank'
+                                      );
+                                    }}
+                                    className="font-medium text-slate-900 hover:text-brand-600"
+                                  >
+                                    {material.name}
+                                  </button>
+                                ) : (
+                                  <a
+                                    href={material.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-slate-900 hover:text-brand-600"
+                                  >
+                                    {material.name}
+                                  </a>
+                                )}
                                 <p className="text-xs text-slate-500">{material.type}</p>
                               </div>
                             )}
@@ -1036,14 +1060,6 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                                   >
                                     <Edit2 className="w-4 h-4" />
                                   </button>
-                                  <a
-                                    href={material.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-brand-600 hover:text-brand-700 p-1"
-                                  >
-                                    <Download className="w-4 h-4" />
-                                  </a>
                                   <button
                                     onClick={() =>
                                       handleDeleteMaterial(lesson._id, material._id)

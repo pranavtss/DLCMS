@@ -40,6 +40,18 @@ if (!fs.existsSync(uploadsDir)) {
   console.log("✓ Uploads directory exists at:", uploadsDir)
 }
 
+// Middleware to set proper Content-Disposition headers for different file types
+app.use("/uploads", (req, res, next) => {
+  const isPptFile = /\.pptx?$/i.test(req.path)
+  const isPdfFile = /\.pdf$/i.test(req.path)
+  
+  if (isPptFile || isPdfFile) {
+    // Serve as inline to open in browser instead of downloading
+    res.setHeader('Content-Disposition', 'inline')
+  }
+  next()
+})
+
 app.use("/uploads", express.static(uploadsDir))
 
 const upload = multer({
