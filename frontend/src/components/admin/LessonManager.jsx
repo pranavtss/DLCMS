@@ -89,6 +89,15 @@ const isPresentationMaterial = (material) => {
   return /\.pptx?(\?|#|$)/.test(name) || /\.pptx?(\?|#|$)/.test(url);
 };
 
+const normalizeUrl = (value) => {
+  const input = String(value || '').trim();
+  if (!input) return '';
+  if (/^https\/\//i.test(input)) return input.replace(/^https\/\//i, 'https://');
+  if (/^http\/\//i.test(input)) return input.replace(/^http\/\//i, 'http://');
+  if (/^\/\//.test(input)) return `https:${input}`;
+  return input;
+};
+
 const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMaterialDeleted }) => {
   const [expandedLesson, setExpandedLesson] = useState(null);
   const [showLessonForm, setShowLessonForm] = useState(false);
@@ -298,9 +307,10 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
       }
 
       const inferredType = guessMaterialType(data.mimeType);
-      const resolvedUrl = data.url?.startsWith('http')
-        ? data.url
-        : `${API_BASE_URL}${data.url?.startsWith('/') ? data.url : `/${data.url || ''}`}`;
+      const rawUrl = normalizeUrl(data.url);
+      const resolvedUrl = rawUrl.startsWith('http')
+        ? rawUrl
+        : `${API_BASE_URL}${rawUrl.startsWith('/') ? rawUrl : `/${rawUrl || ''}`}`;
 
       setNewMaterial((prev) => ({
         ...prev,

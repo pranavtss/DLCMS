@@ -109,6 +109,17 @@ const sanitizeBaseName = (filename = "file") =>
     .replace(/[^a-zA-Z0-9_-]/g, "_")
     .slice(0, 70) || "file"
 
+const normalizeExternalUrl = (value = "") => {
+  const url = String(value || "").trim()
+  if (!url) return ""
+
+  if (/^https\/\//i.test(url)) return url.replace(/^https\/\//i, "https://")
+  if (/^http\/\//i.test(url)) return url.replace(/^http\/\//i, "http://")
+  if (/^\/\//.test(url)) return `https:${url}`
+
+  return url
+}
+
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/dlcms"
 const MASTER_ADMIN_EMAIL = (process.env.MASTER_ADMIN_EMAIL || "admin@dlcms.ac.in").toLowerCase()
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin"
@@ -484,7 +495,7 @@ app.post("/api/uploads", (req, res, next) => {
           uploadStream.end(req.file.buffer)
         })
 
-        fileUrl = result.secure_url
+        fileUrl = normalizeExternalUrl(result.secure_url)
       } else {
         const fileUrlLocal = `/uploads/${req.file.filename}`
         fileUrl = fileUrlLocal
@@ -493,7 +504,7 @@ app.post("/api/uploads", (req, res, next) => {
       console.log("✓ File uploaded successfully:", fileUrl)
       res.status(201).json({
         message: "File uploaded",
-        url: fileUrl,
+        url: normalizeExternalUrl(fileUrl),
         originalName: req.file.originalname,
         mimeType: req.file.mimetype,
       })
@@ -823,7 +834,12 @@ app.post("/api/courses/:courseId/lessons", authenticateToken, authorizeAdmin, as
         ? [videoUrl]
         : []
 
-    const normalizedMaterials = Array.isArray(materials) ? materials : []
+    const normalizedMaterials = Array.isArray(materials)
+      ? materials.map((material) => ({
+          ...material,
+          url: normalizeExternalUrl(material?.url),
+        }))
+      : []
 
     const newLesson = {
       title,
@@ -947,7 +963,7 @@ app.post("/api/courses/:courseId/lessons/:lessonId/materials", authenticateToken
 
     const newMaterial = {
       name,
-      url,
+      url: normalizeExternalUrl(url),
       type: type || "other"
     }
 
@@ -1006,7 +1022,7 @@ app.patch("/api/courses/:courseId/lessons/:lessonId/materials/:materialId", auth
     console.log(`  - ✅ Material found`)
 
     if (name) material.name = name
-    if (url) material.url = url
+    if (url) material.url = normalizeExternalUrl(url)
     if (type) material.type = type
 
     await course.save()

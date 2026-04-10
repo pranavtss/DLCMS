@@ -4,27 +4,39 @@
 
 export const API_BASE_URL = "https://dlcms-g6hp.onrender.com"
 
-export const getImageUrl = (path) => {
+const normalizeUrl = (value) => {
+  const path = String(value || "").trim()
   if (!path) return null
 
-  if (path.startsWith("blob:") || path.startsWith("data:")) {
-    return path
+  if (/^https\/\//i.test(path)) return path.replace(/^https\/\//i, "https://")
+  if (/^http\/\//i.test(path)) return path.replace(/^http\/\//i, "http://")
+  if (/^\/\//.test(path)) return `https:${path}`
+
+  return path
+}
+
+export const getImageUrl = (path) => {
+  const normalizedPath = normalizeUrl(path)
+  if (!normalizedPath) return null
+
+  if (normalizedPath.startsWith("blob:") || normalizedPath.startsWith("data:")) {
+    return normalizedPath
   }
 
-  if (!path.startsWith("http")) {
-    return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`
+  if (!normalizedPath.startsWith("http")) {
+    return `${API_BASE_URL}${normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`}`
   }
 
   try {
-    const parsedUrl = new URL(path)
+    const parsedUrl = new URL(normalizedPath)
     if (parsedUrl.pathname.startsWith("/uploads/")) {
       return `${API_BASE_URL}${parsedUrl.pathname}`
     }
   } catch {
-    return path
+    return normalizedPath
   }
 
-  return path
+  return normalizedPath
 }
 
 /**
