@@ -576,16 +576,16 @@ const LearnerCourseDetailPage = () => {
                                   <button
                                     key={material._id}
                                     onClick={() => window.open(viewerUrl, '_blank', 'noopener,noreferrer')}
-                                    className="flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
+                                    className="w-full text-left flex items-center gap-4 p-5 bg-white rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
                                   >
-                                    <div className="flex-shrink-0 w-10 h-10 bg-red-50 rounded flex items-center justify-center">
+                                    <div className="flex-shrink-0 w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
                                       {getMaterialIcon(material.type)}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
+                                      <p className="text-lg font-semibold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
                                         {material.name}
                                       </p>
-                                      <p className="text-xs text-slate-500 uppercase mt-1">
+                                      <p className="text-sm text-slate-500 uppercase mt-1">
                                         {material.type}
                                       </p>
                                     </div>
