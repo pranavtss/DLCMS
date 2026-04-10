@@ -132,12 +132,14 @@ const getPdfViewerUrl = (sourceUrl) =>
 const getMaterialViewerUrl = (material) => {
   const sourceUrl = normalizeUrl(material?.url);
   if (!sourceUrl) return '#';
+  const type = String(material?.type || '').toLowerCase();
 
   if (isPresentationMaterial(material)) return getPdfViewerUrl(sourceUrl);
   if (isPdfMaterial(material)) return getPdfViewerUrl(sourceUrl);
   if (isImageMaterial(material) || isVideoMaterial(material)) return sourceUrl;
+  if (type === 'other') return sourceUrl;
 
-  return getPdfViewerUrl(sourceUrl);
+  return sourceUrl;
 };
 
 const normalizeUrl = (value) => {

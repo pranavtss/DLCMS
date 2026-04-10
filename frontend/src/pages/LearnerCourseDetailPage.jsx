@@ -144,13 +144,14 @@ const getPdfViewerUrl = (sourceUrl) =>
 const getMaterialViewerUrl = (material) => {
   const sourceUrl = getImageUrl(material?.url);
   if (!sourceUrl || sourceUrl === '#') return '#';
+  const type = String(material?.type || '').toLowerCase();
 
   if (isPresentationMaterial(material)) return getPdfViewerUrl(sourceUrl);
   if (isPdfMaterial(material)) return getPdfViewerUrl(sourceUrl);
   if (isImageMaterial(material) || isVideoMaterial(material)) return sourceUrl;
+  if (type === 'other') return sourceUrl;
 
-  // Default unknown documents to Google viewer instead of direct download.
-  return getPdfViewerUrl(sourceUrl);
+  return sourceUrl;
 };
 
 const getMaterialHref = (material) => {
