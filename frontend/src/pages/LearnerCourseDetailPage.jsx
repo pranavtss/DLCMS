@@ -145,7 +145,7 @@ const getMaterialViewerUrl = (material) => {
   const sourceUrl = getImageUrl(material?.url);
   if (!sourceUrl || sourceUrl === '#') return '#';
 
-  if (isPresentationMaterial(material)) return getOfficeViewerUrl(sourceUrl);
+  if (isPresentationMaterial(material)) return getPdfViewerUrl(sourceUrl);
   if (isPdfMaterial(material)) return getPdfViewerUrl(sourceUrl);
   if (isImageMaterial(material) || isVideoMaterial(material)) return sourceUrl;
 

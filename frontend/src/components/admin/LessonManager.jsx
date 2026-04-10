@@ -133,7 +133,7 @@ const getMaterialViewerUrl = (material) => {
   const sourceUrl = normalizeUrl(material?.url);
   if (!sourceUrl) return '#';
 
-  if (isPresentationMaterial(material)) return getOfficeViewerUrl(sourceUrl);
+  if (isPresentationMaterial(material)) return getPdfViewerUrl(sourceUrl);
   if (isPdfMaterial(material)) return getPdfViewerUrl(sourceUrl);
   if (isImageMaterial(material) || isVideoMaterial(material)) return sourceUrl;
 
