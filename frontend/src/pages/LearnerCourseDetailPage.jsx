@@ -101,6 +101,30 @@ const isPresentationMaterial = (material) => {
   return /\.pptx?(\?|#|$)/.test(name) || /\.pptx?(\?|#|$)/.test(url);
 };
 
+const isImageMaterial = (material) => {
+  const type = String(material?.type || '').toLowerCase();
+  const name = String(material?.name || '').toLowerCase();
+  const url = String(material?.url || '').toLowerCase();
+
+  if (type === 'image') return true;
+  if (url.includes('/image/upload/')) return true;
+
+  return /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|#|$)/.test(name)
+    || /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|#|$)/.test(url);
+};
+
+const isVideoMaterial = (material) => {
+  const type = String(material?.type || '').toLowerCase();
+  const name = String(material?.name || '').toLowerCase();
+  const url = String(material?.url || '').toLowerCase();
+
+  if (type === 'video') return true;
+  if (url.includes('/video/upload/')) return true;
+
+  return /\.(mp4|webm|mov|avi|m4v|mkv)(\?|#|$)/.test(name)
+    || /\.(mp4|webm|mov|avi|m4v|mkv)(\?|#|$)/.test(url);
+};
+
 const isPdfMaterial = (material) => {
   const type = String(material?.type || '').toLowerCase();
   const name = String(material?.name || '').toLowerCase();
@@ -116,6 +140,18 @@ const getOfficeViewerUrl = (sourceUrl) =>
 
 const getPdfViewerUrl = (sourceUrl) =>
   `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(sourceUrl)}`;
+
+const getMaterialViewerUrl = (material) => {
+  const sourceUrl = getImageUrl(material?.url);
+  if (!sourceUrl || sourceUrl === '#') return '#';
+
+  if (isPresentationMaterial(material)) return getOfficeViewerUrl(sourceUrl);
+  if (isPdfMaterial(material)) return getPdfViewerUrl(sourceUrl);
+  if (isImageMaterial(material) || isVideoMaterial(material)) return sourceUrl;
+
+  // Default unknown documents to Google viewer instead of direct download.
+  return getPdfViewerUrl(sourceUrl);
+};
 
 const getMaterialHref = (material) => {
   const sourceUrl = getImageUrl(material?.url);
@@ -534,69 +570,12 @@ const LearnerCourseDetailPage = () => {
                             </h4>
                             <div className="space-y-2">
                               {lesson.materials.map((material) => {
-                                const href = getMaterialHref(material);
-                                const isPpt = isPresentationMaterial(material);
-                                const isPdf = isPdfMaterial(material);
-                                
-                                // For PPT files, use an onclick handler to open in Office viewer
-                                if (isPpt) {
-                                  return (
-                                    <button
-                                      key={material._id}
-                                      onClick={() => {
-                                        const sourceUrl = getImageUrl(material?.url);
-                                        window.open(getOfficeViewerUrl(sourceUrl), '_blank');
-                                      }}
-                                      className="w-full text-left flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
-                                    >
-                                      <div className="flex-shrink-0 w-10 h-10 bg-red-50 rounded flex items-center justify-center">
-                                        {getMaterialIcon(material.type)}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
-                                          {material.name}
-                                        </p>
-                                        <p className="text-xs text-slate-500 uppercase mt-1">
-                                          {material.type}
-                                        </p>
-                                      </div>
-                                    </button>
-                                  );
-                                }
+                                const viewerUrl = getMaterialViewerUrl(material);
 
-                                // For PDF files, open Google Docs viewer to avoid raw-asset binary downloads.
-                                if (isPdf) {
-                                  return (
-                                    <button
-                                      key={material._id}
-                                      onClick={() => {
-                                        const sourceUrl = getImageUrl(material?.url);
-                                        window.open(getPdfViewerUrl(sourceUrl), '_blank');
-                                      }}
-                                      className="w-full text-left flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
-                                    >
-                                      <div className="flex-shrink-0 w-10 h-10 bg-red-50 rounded flex items-center justify-center">
-                                        {getMaterialIcon(material.type)}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
-                                          {material.name}
-                                        </p>
-                                        <p className="text-xs text-slate-500 uppercase mt-1">
-                                          {material.type}
-                                        </p>
-                                      </div>
-                                    </button>
-                                  );
-                                }
-                                
-                                // For other file types, use regular link
                                 return (
-                                  <a
+                                  <button
                                     key={material._id}
-                                    href={href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    onClick={() => window.open(viewerUrl, '_blank', 'noopener,noreferrer')}
                                     className="flex items-center gap-3 p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all group"
                                   >
                                     <div className="flex-shrink-0 w-10 h-10 bg-red-50 rounded flex items-center justify-center">
@@ -610,7 +589,7 @@ const LearnerCourseDetailPage = () => {
                                         {material.type}
                                       </p>
                                     </div>
-                                  </a>
+                                  </button>
                                 );
                               })}
                             </div>

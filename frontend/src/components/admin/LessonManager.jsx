@@ -89,6 +89,57 @@ const isPresentationMaterial = (material) => {
   return /\.pptx?(\?|#|$)/.test(name) || /\.pptx?(\?|#|$)/.test(url);
 };
 
+const isPdfMaterial = (material) => {
+  const type = String(material?.type || '').toLowerCase();
+  const name = String(material?.name || '').toLowerCase();
+  const url = String(material?.url || '').toLowerCase();
+
+  if (type === 'pdf') return true;
+
+  return /\.pdf(\?|#|$)/.test(name) || /\.pdf(\?|#|$)/.test(url);
+};
+
+const isImageMaterial = (material) => {
+  const type = String(material?.type || '').toLowerCase();
+  const name = String(material?.name || '').toLowerCase();
+  const url = String(material?.url || '').toLowerCase();
+
+  if (type === 'image') return true;
+  if (url.includes('/image/upload/')) return true;
+
+  return /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|#|$)/.test(name)
+    || /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|#|$)/.test(url);
+};
+
+const isVideoMaterial = (material) => {
+  const type = String(material?.type || '').toLowerCase();
+  const name = String(material?.name || '').toLowerCase();
+  const url = String(material?.url || '').toLowerCase();
+
+  if (type === 'video') return true;
+  if (url.includes('/video/upload/')) return true;
+
+  return /\.(mp4|webm|mov|avi|m4v|mkv)(\?|#|$)/.test(name)
+    || /\.(mp4|webm|mov|avi|m4v|mkv)(\?|#|$)/.test(url);
+};
+
+const getOfficeViewerUrl = (sourceUrl) =>
+  `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(sourceUrl)}`;
+
+const getPdfViewerUrl = (sourceUrl) =>
+  `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(sourceUrl)}`;
+
+const getMaterialViewerUrl = (material) => {
+  const sourceUrl = normalizeUrl(material?.url);
+  if (!sourceUrl) return '#';
+
+  if (isPresentationMaterial(material)) return getOfficeViewerUrl(sourceUrl);
+  if (isPdfMaterial(material)) return getPdfViewerUrl(sourceUrl);
+  if (isImageMaterial(material) || isVideoMaterial(material)) return sourceUrl;
+
+  return getPdfViewerUrl(sourceUrl);
+};
+
 const normalizeUrl = (value) => {
   const input = String(value || '').trim();
   if (!input) return '';
@@ -1023,28 +1074,14 @@ const LessonManager = ({ courseId, lessons, onLessonAdded, onLessonDeleted, onMa
                               </div>
                             ) : (
                               <div>
-                                {isPresentationMaterial(material) ? (
-                                  <button
-                                    onClick={() => {
-                                      window.open(
-                                        `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(material.url)}`,
-                                        '_blank'
-                                      );
-                                    }}
-                                    className="font-medium text-slate-900 hover:text-brand-600"
-                                  >
-                                    {material.name}
-                                  </button>
-                                ) : (
-                                  <a
-                                    href={material.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-medium text-slate-900 hover:text-brand-600"
-                                  >
-                                    {material.name}
-                                  </a>
-                                )}
+                                <button
+                                  onClick={() => {
+                                    window.open(getMaterialViewerUrl(material), '_blank', 'noopener,noreferrer');
+                                  }}
+                                  className="font-medium text-slate-900 hover:text-brand-600"
+                                >
+                                  {material.name}
+                                </button>
                                 <p className="text-xs text-slate-500">{material.type}</p>
                               </div>
                             )}
