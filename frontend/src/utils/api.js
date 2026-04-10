@@ -87,5 +87,5 @@ export const logout = () => {
   localStorage.removeItem("userName")
   localStorage.removeItem("userRole")
   localStorage.removeItem("userIsMasterAdmin")
-  window.location.href = "/login"
+  window.location.replace("/login")
 }

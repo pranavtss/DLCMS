@@ -5,13 +5,13 @@ const AdminSidebar = ({ isOpen = true, onClose }) => {
   const navigate = useNavigate();
   const isMasterAdmin = localStorage.getItem('userIsMasterAdmin') === 'true';
 
-  const handleSignOut = () => {
+  const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userIsMasterAdmin');
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const navItems = [
@@ -88,11 +88,11 @@ const AdminSidebar = ({ isOpen = true, onClose }) => {
           </div>
         </div>
         <button
-          onClick={handleSignOut}
+          onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors w-full"
         >
           <LogOut className="w-5 h-5" />
-          <span className="font-medium">Sign Out</span>
+          <span className="font-medium">Logout</span>
         </button>
       </div>
     </div>
